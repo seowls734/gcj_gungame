@@ -117,7 +117,7 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 #joystick-zone{position:absolute;bottom:20px;left:20px;width:150px;height:150px;pointer-events:auto;touch-action:none}
 #joystick-base{width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.15);position:absolute;bottom:15px;left:15px}
 #joystick-knob{width:50px;height:50px;border-radius:50%;background:rgba(0,255,100,0.3);border:2px solid rgba(0,255,100,0.5);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);transition:none}
-#look-zone{position:absolute;top:0;right:0;width:55%;height:100%;pointer-events:auto;touch-action:none}
+#look-zone{position:absolute;top:0;right:0;width:55%;height:100%;pointer-events:none;touch-action:none}
 .m-btn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Courier New',monospace;font-weight:bold;color:rgba(255,255,255,0.7);user-select:none;-webkit-user-select:none}
 #btn-fire{bottom:30px;right:30px;width:80px;height:80px;background:rgba(255,60,60,0.25);border:2px solid rgba(255,60,60,0.5);font-size:11px;letter-spacing:1px}
 #btn-fire.active{background:rgba(255,60,60,0.5);border-color:rgba(255,80,80,0.8)}
@@ -1396,15 +1396,15 @@ if(isMobile){
   const btnPrev=document.getElementById('btn-prev-wep');
   const btnNext=document.getElementById('btn-next-wep');
 
-  let lookTouchId=null,lookLastX=0,lookLastY=0;
   let joyTouchId=null,joyCX=0,joyCY=0;
+  // Track all look touches (any touch on right side that isn't joystick)
+  const lookTouches={};  // id -> {lastX, lastY}
   let lookSens=0.004;
   const sensSlider=document.getElementById('sens-slider');
   const sensVal=document.getElementById('sens-val');
   const sensBtn=document.getElementById('sens-btn');
   const sensPanel=document.getElementById('sens-panel');
   const sensClose=document.getElementById('sens-close');
-  // Load saved sensitivity
   const savedSens=localStorage.getItem('ts_sensitivity');
   if(savedSens){sensSlider.value=savedSens;sensVal.innerText=savedSens;lookSens=Number(savedSens)*0.0005;}
   sensSlider.addEventListener('input',()=>{
@@ -1416,34 +1416,48 @@ if(isMobile){
   sensClose.addEventListener('click',()=>sensPanel.classList.remove('active'));
   const JOY_MAX=50;
 
-  // Look zone - touch drag to rotate camera
-  lookZone.addEventListener('touchstart',e=>{
-    if(lookTouchId!==null)return;
-    const t=e.changedTouches[0];
-    lookTouchId=t.identifier;lookLastX=t.clientX;lookLastY=t.clientY;
-  },{passive:true});
-  lookZone.addEventListener('touchmove',e=>{
+  function applyLook(dx,dy){
+    if(!mobileActive||gameOver)return;
+    mobileYaw-=dx*lookSens;
+    mobilePitch+=dy*lookSens;
+    mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
+    yawObj.rotation.y=mobileYaw;
+    camera.rotation.x=mobilePitch;
+  }
+
+  // Global touch handling for look (right half of screen, including over buttons)
+  document.addEventListener('touchstart',e=>{
     for(const t of e.changedTouches){
-      if(t.identifier===lookTouchId){
-        const dx=t.clientX-lookLastX, dy=t.clientY-lookLastY;
-        lookLastX=t.clientX;lookLastY=t.clientY;
-        if(!mobileActive||gameOver)return;
-        mobileYaw+=dx*lookSens;
-        mobilePitch+=dy*lookSens;
-        mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
-        yawObj.rotation.y=mobileYaw;
-        camera.rotation.x=mobilePitch;
+      // Skip if it's the joystick touch
+      if(t.identifier===joyTouchId)continue;
+      // Only right 60% of screen for look
+      if(t.clientX>window.innerWidth*0.4){
+        lookTouches[t.identifier]={lastX:t.clientX,lastY:t.clientY};
       }
     }
   },{passive:true});
-  lookZone.addEventListener('touchend',e=>{
-    for(const t of e.changedTouches){if(t.identifier===lookTouchId)lookTouchId=null;}
+  document.addEventListener('touchmove',e=>{
+    for(const t of e.changedTouches){
+      if(lookTouches[t.identifier]){
+        const lt=lookTouches[t.identifier];
+        const dx=t.clientX-lt.lastX, dy=t.clientY-lt.lastY;
+        lt.lastX=t.clientX;lt.lastY=t.clientY;
+        applyLook(dx,dy);
+      }
+    }
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches) delete lookTouches[t.identifier];
+  },{passive:true});
+  document.addEventListener('touchcancel',e=>{
+    for(const t of e.changedTouches) delete lookTouches[t.identifier];
   },{passive:true});
 
   // Joystick
   joyZone.addEventListener('touchstart',e=>{
     const t=e.changedTouches[0];
     joyTouchId=t.identifier;
+    delete lookTouches[t.identifier]; // don't track joystick as look
     const r=joyBase.getBoundingClientRect();
     joyCX=r.left+r.width/2;joyCY=r.top+r.height/2;
   },{passive:true});
@@ -1467,8 +1481,7 @@ if(isMobile){
     for(const t of e.changedTouches){if(t.identifier===joyTouchId)resetJoy();}
   },{passive:true});
 
-  // Fire button (hold for auto)
-  let fireInterval=null;
+  // Fire button (hold for auto) - also allows look while held
   btnFire.addEventListener('touchstart',e=>{
     e.preventDefault();btnFire.classList.add('active');
     if(!mobileActive||gameOver)return;
