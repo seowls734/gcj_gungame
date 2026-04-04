@@ -636,6 +636,8 @@ function applySkin(model){
   if(!sk)return;
   model.traverse(child=>{
     if(child.isMesh&&child.material){
+      // Clone material so we don't modify shared instances
+      child.material=child.material.clone();
       const m=child.material;
       const lum=m.color.r*0.3+m.color.g*0.59+m.color.b*0.11;
       if(lum<0.15) m.color.setHex(sk.sec);
@@ -716,9 +718,9 @@ function buildMap(sid){
     black:0x181818,yellow:0xccaa30,
   };
 
-  // Always add boundary walls
-  addBox(0,5,-LIM,400,10,3,C.concrete);addBox(0,5,LIM,400,10,3,C.concrete);
-  addBox(-LIM,5,0,3,10,400,C.concrete);addBox(LIM,5,0,3,10,400,C.concrete);
+  // Boundary walls - low walls so sky is visible
+  addBox(0,1.5,-LIM,400,3,2,C.concrete);addBox(0,1.5,LIM,400,3,2,C.concrete);
+  addBox(-LIM,1.5,0,2,3,400,C.concrete);addBox(LIM,1.5,0,2,3,400,C.concrete);
 
   if(sid===1){// 훈련장 - military training field, green, simple
     const W=C.green,D=C.darkGreen,S=C.sand;
@@ -1421,9 +1423,7 @@ function showStageSelect(){
 }
 
 function pickUpgrade(u){
-  mods.dmgMult=1.0;mods.speedMult=1.0;mods.armorMult=1.0;
-  mods.bonusScore=1.0;mods.splashRad=0.0;mods.fireRateMult=1.0;
-  mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;
+  // Upgrades accumulate within a stage - no reset here
   u.apply();
   stageEl.classList.remove('active');
   choosingStage=false;
