@@ -1421,8 +1421,12 @@ if(isMobile){
     mobileYaw-=dx*lookSens;
     mobilePitch-=dy*lookSens;
     mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
-    yawObj.rotation.set(0,mobileYaw,0);
-    camera.rotation.set(mobilePitch,0,0);
+    yawObj.rotation.y=mobileYaw;
+    yawObj.rotation.x=0;
+    yawObj.rotation.z=0;
+    camera.rotation.x=mobilePitch;
+    camera.rotation.y=0;
+    camera.rotation.z=0;
   }
 
   // Global touch handling for look (right half of screen, including over buttons)
