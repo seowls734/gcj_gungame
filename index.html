@@ -102,6 +102,16 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 @media(pointer:coarse) and (orientation:portrait){
   #rotate-msg{display:flex}
 }
+/* Sensitivity settings */
+#sens-btn{position:absolute;top:18px;left:50%;transform:translateX(-50%);z-index:14;pointer-events:auto;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#aaa;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer;display:none}
+#sens-panel{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(0,0,0,0.92);border:1px solid rgba(0,255,100,0.3);padding:20px 28px;font-family:'Courier New',monospace;min-width:240px}
+#sens-panel.active{display:block}
+#sens-panel .stitle{color:#00ff88;font-size:14px;letter-spacing:2px;margin-bottom:14px;text-align:center}
+#sens-panel label{color:#aaa;font-size:11px;letter-spacing:1px;display:block;margin-bottom:4px}
+#sens-panel input[type=range]{width:100%;margin-bottom:6px;accent-color:#00ff88}
+#sens-panel .sval{color:#fff;font-size:13px;text-align:center;margin-bottom:14px}
+#sens-panel .sclose{display:block;margin:10px auto 0;background:rgba(0,255,100,0.15);border:1px solid rgba(0,255,100,0.4);color:#00ff88;font-family:'Courier New',monospace;font-size:11px;padding:6px 20px;cursor:pointer;letter-spacing:1px}
+@media(pointer:coarse){#sens-btn{display:block}}
 /* Mobile touch controls */
 #mobile-controls{display:none;position:absolute;inset:0;z-index:12;pointer-events:none}
 #joystick-zone{position:absolute;bottom:20px;left:20px;width:150px;height:150px;pointer-events:auto;touch-action:none}
@@ -186,6 +196,14 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,calc(-50% - 55px));width:4px;height:4px;border-radius:50%;background:rgba(0,200,80,0.65);"></div>
   <!-- Magnification label -->
   <div style="position:absolute;top:calc(50% + 178px);left:50%;transform:translateX(-50%);font-family:'Courier New',monospace;font-size:11px;color:rgba(0,200,80,0.5);letter-spacing:2px;">8x</div>
+</div>
+<div id="sens-btn">SENS</div>
+<div id="sens-panel">
+  <div class="stitle">SENSITIVITY</div>
+  <label>시점 감도</label>
+  <input type="range" id="sens-slider" min="1" max="20" value="8" step="1">
+  <div class="sval" id="sens-val">8</div>
+  <button class="sclose" id="sens-close">OK</button>
 </div>
 <div id="rotate-msg">
   <div class="icon">📱</div>
@@ -1380,7 +1398,22 @@ if(isMobile){
 
   let lookTouchId=null,lookLastX=0,lookLastY=0;
   let joyTouchId=null,joyCX=0,joyCY=0;
-  const LOOK_SENS=0.004;
+  let lookSens=0.004;
+  const sensSlider=document.getElementById('sens-slider');
+  const sensVal=document.getElementById('sens-val');
+  const sensBtn=document.getElementById('sens-btn');
+  const sensPanel=document.getElementById('sens-panel');
+  const sensClose=document.getElementById('sens-close');
+  // Load saved sensitivity
+  const savedSens=localStorage.getItem('ts_sensitivity');
+  if(savedSens){sensSlider.value=savedSens;sensVal.innerText=savedSens;lookSens=Number(savedSens)*0.0005;}
+  sensSlider.addEventListener('input',()=>{
+    const v=sensSlider.value;sensVal.innerText=v;
+    lookSens=Number(v)*0.0005;
+    localStorage.setItem('ts_sensitivity',v);
+  });
+  sensBtn.addEventListener('click',()=>sensPanel.classList.toggle('active'));
+  sensClose.addEventListener('click',()=>sensPanel.classList.remove('active'));
   const JOY_MAX=50;
 
   // Look zone - touch drag to rotate camera
@@ -1395,8 +1428,8 @@ if(isMobile){
         const dx=t.clientX-lookLastX, dy=t.clientY-lookLastY;
         lookLastX=t.clientX;lookLastY=t.clientY;
         if(!mobileActive||gameOver)return;
-        mobileYaw-=dx*LOOK_SENS;
-        mobilePitch-=dy*LOOK_SENS;
+        mobileYaw-=dx*lookSens;
+        mobilePitch-=dy*lookSens;
         mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
         yawObj.rotation.y=mobileYaw;
         camera.rotation.x=mobilePitch;
