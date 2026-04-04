@@ -107,7 +107,7 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 .skin-item .slocked{position:absolute;top:2px;right:2px;font-size:8px}
 #skin-panel .sclose{display:block;margin:14px auto 0;background:rgba(0,255,100,0.15);border:1px solid rgba(0,255,100,0.4);color:#00ff88;font-family:'Courier New',monospace;font-size:11px;padding:6px 20px;cursor:pointer;letter-spacing:1px}
 #skin-btn{display:block}
-#menu-btn{position:absolute;top:100px;right:18px;z-index:14;pointer-events:auto;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#aaa;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer}
+#menu-btn{position:absolute;top:130px;right:18px;z-index:14;pointer-events:auto;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#aaa;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer}
 /* Landscape prompt overlay */
 #rotate-msg{display:none;position:fixed;inset:0;z-index:9999;background:#000;color:#fff;flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;text-align:center}
 #rotate-msg .icon{font-size:60px;margin-bottom:18px;animation:rotSpin 1.5s ease-in-out infinite}
@@ -1457,6 +1457,8 @@ function stageComplete(){
   clearedStages.add(currentStageId);
   totalScore+=score;
   if(!bestScores[currentStageId]||score>bestScores[currentStageId]) bestScores[currentStageId]=score;
+  // Clear progress for this stage since it's completed
+  currentStageId=0;stageWaveNum=0;
   saveProg();
   choosingStage=true;
   ctrl.unlock();
@@ -1488,14 +1490,18 @@ function showStageLobby(afterClear){
     card.className='lobby-card'+(cleared?' lclr':'')+(!unlocked?' lk':'');
     const stars=Array.from({length:5},(_,i)=>'<div class="lstar'+(i<s.diff?' on':'')+'"></div>').join('');
     const best=bestScores[s.id];
+    const sv2=loadSave();
+    const hasResume=sv2.lastStage===s.id&&sv2.lastWave>1;
     card.innerHTML=
       (cleared?'<div class="lbadge lbadge-clear">CLEAR</div>':'')+
       (!unlocked?'<div class="lbadge lbadge-lock">🔒</div>':'')+
+      (hasResume?'<div class="lbadge" style="color:#ffcc00;border:1px solid rgba(255,200,0,0.4);background:rgba(100,80,0,0.2)">WAVE '+sv2.lastWave+'</div>':'')+
       '<span class="li">'+s.icon+'</span>'+
       '<div class="ln">'+s.name+'</div>'+
       '<div class="ls">'+s.sub+'</div>'+
       '<div class="ldiff">'+stars+'</div>'+
       '<div class="ldesc">'+s.desc+'</div>'+
+      (hasResume?'<div class="lwv" style="color:#ffcc00;">▶ WAVE '+sv2.lastWave+'부터 이어하기</div>':'')+
       (best?'<div class="lwv" style="color:#ffcc00;">BEST: '+best+'</div>':'')+
       '<div class="lwv">WAVES: '+s.waves+'</div>';
     if(unlocked) card.addEventListener('click',()=>startStage(s.id));
@@ -1522,7 +1528,10 @@ function showStageLobby(afterClear){
 
 function startStage(sid){
   currentStageId=sid;
-  stageWaveNum=1;
+  // Resume from saved wave if same stage
+  const sv=loadSave();
+  const resumeWave=(sv.lastStage===sid&&sv.lastWave>1)?sv.lastWave:1;
+  stageWaveNum=resumeWave;
   const st=getCurStage();
   // Clear world
   clearAll();
@@ -1531,7 +1540,7 @@ function startStage(sid){
   reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;aiming=false;
   mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;
   score=0;scoreEl.innerText='0';hpBar.style.width='100%';rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
-  wave=1;waveKills=0;waveTarget=st.waveBase;waveActive=true;choosingStage=false;showingLobby=false;
+  wave=resumeWave;waveKills=0;waveTarget=st.waveBase+(resumeWave-1)*5;waveActive=true;choosingStage=false;showingLobby=false;
   mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.bonusScore=1;mods.splashRad=0;mods.fireRateMult=1;mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;mods._berserker=false;
   if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
   stageEl.classList.remove('active');
@@ -1601,6 +1610,7 @@ function pickUpgrade(u){
   waveTarget=getCurStage().waveBase+(stageWaveNum-1)*5;
   waveActive=true;
   updateWaveHUD();
+  saveProg();
   if(isMobile){mobileActive=true;}else{ctrl.lock();}
   const initCount=Math.min(4+wave,10);
   for(let i=0;i<initCount;i++) setTimeout(spawnEnemy,i*300);
@@ -1645,15 +1655,19 @@ function loadSave(){
       cleared: d.cleared ? new Set(d.cleared) : new Set(),
       totalScore: d.totalScore || 0,
       bestScores: d.bestScores || {},
+      lastStage: d.lastStage || 0,
+      lastWave: d.lastWave || 0,
     };
   }catch(e){}
-  return { cleared: new Set(), totalScore: 0, bestScores: {} };
+  return { cleared: new Set(), totalScore: 0, bestScores: {}, lastStage:0, lastWave:0 };
 }
 function saveProg(){
   try{localStorage.setItem(SAVE_KEY,JSON.stringify({
     cleared:[...clearedStages],
     totalScore: totalScore,
     bestScores: bestScores,
+    lastStage: currentStageId,
+    lastWave: stageWaveNum,
   }));}catch(e){}
 }
 const saveData=loadSave();
@@ -1762,6 +1776,7 @@ document.addEventListener('mouseup',e=>{
 });
 function goToMenu(){
   if(showingLobby||choosingStage)return;
+  saveProg();
   clearAll();if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
   mobileActive=false;ctrl.unlock();
   showStageLobby(false);
