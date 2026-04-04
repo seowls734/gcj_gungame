@@ -93,6 +93,15 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 .lbadge-lock{font-size:13px}
 #reset-save{margin-top:28px;padding:8px 22px;background:rgba(80,0,0,0.4);border:1px solid rgba(255,60,60,0.3);color:#aa5555;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;transition:all 0.15s}
 #reset-save:hover{background:rgba(120,0,0,0.6);border-color:rgba(255,80,80,0.6);color:#ff6666}
+/* Landscape prompt overlay */
+#rotate-msg{display:none;position:fixed;inset:0;z-index:9999;background:#000;color:#fff;flex-direction:column;align-items:center;justify-content:center;font-family:'Courier New',monospace;text-align:center}
+#rotate-msg .icon{font-size:60px;margin-bottom:18px;animation:rotSpin 1.5s ease-in-out infinite}
+#rotate-msg p{font-size:16px;letter-spacing:2px;color:#00ff88}
+#rotate-msg .sub{font-size:12px;color:#666;margin-top:8px}
+@keyframes rotSpin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
+@media(pointer:coarse) and (orientation:portrait){
+  #rotate-msg{display:flex}
+}
 /* Mobile touch controls */
 #mobile-controls{display:none;position:absolute;inset:0;z-index:12;pointer-events:none}
 #joystick-zone{position:absolute;bottom:20px;left:20px;width:150px;height:150px;pointer-events:auto;touch-action:none}
@@ -178,6 +187,11 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
   <!-- Magnification label -->
   <div style="position:absolute;top:calc(50% + 178px);left:50%;transform:translateX(-50%);font-family:'Courier New',monospace;font-size:11px;color:rgba(0,200,80,0.5);letter-spacing:2px;">8x</div>
 </div>
+<div id="rotate-msg">
+  <div class="icon">📱</div>
+  <p>화면을 가로로 돌려주세요</p>
+  <div class="sub">ROTATE YOUR DEVICE</div>
+</div>
 <div id="mobile-controls">
   <div id="joystick-zone"><div id="joystick-base"><div id="joystick-knob"></div></div></div>
   <div id="look-zone"></div>
@@ -224,6 +238,11 @@ const pl2=new THREE.PointLight(0xff4422,12,100,2); pl2.position.set(-45,8,35); s
 
 // Mobile detection
 const isMobile=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||window.matchMedia('(pointer:coarse)').matches;
+
+// Force landscape on mobile
+if(isMobile&&screen.orientation&&screen.orientation.lock){
+  screen.orientation.lock('landscape').catch(()=>{});
+}
 
 // Controls
 const ctrl=new PointerLockControls(camera,document.body);
