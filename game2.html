@@ -1419,7 +1419,7 @@ if(isMobile){
   function applyLook(dx,dy){
     if(!mobileActive||gameOver)return;
     mobileYaw-=dx*lookSens;
-    mobilePitch+=dy*lookSens;
+    mobilePitch-=dy*lookSens;
     mobilePitch=Math.max(-Math.PI/2+0.01,Math.min(Math.PI/2-0.01,mobilePitch));
     yawObj.rotation.set(0,mobileYaw,0);
     camera.rotation.set(mobilePitch,0,0);
