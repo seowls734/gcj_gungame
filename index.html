@@ -911,9 +911,13 @@ function buildMap(sid){
 let currentObstacle=null;
 function isBlocked(x,z,p,skipObst){
   p=p||PR;
+  const feetY=yawObj.position.y-EYH;
+  const climbTol=onGnd?1.3:0.0;
   for(let o of OBST){
     if(skipObst&&o===skipObst)continue;
-    if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p)return true;
+    if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p){
+      if(o.ht>feetY+climbTol) return true;
+    }
   }
   return false;
 }
@@ -1581,6 +1585,20 @@ function updatePlayer(dt){
     const co=currentObstacle,nx=yawObj.position.x,nz=yawObj.position.z;
     if(nx<co.x-co.hw-0.4||nx>co.x+co.hw+0.4||nz<co.z-co.hd-0.4||nz>co.z+co.hd+0.4)
       currentObstacle=null;
+  }
+  // === AUTO STEP-UP: 지상에서 낮은 단(최대 1.3m)은 자동으로 걸어 올라감 ===
+  if(onGnd){
+    const sx=yawObj.position.x,sz=yawObj.position.z;
+    const feetY=yawObj.position.y-EYH;
+    let snapTop=-1,snapObst=null;
+    for(let o of OBST){
+      if(sx>o.x-o.hw&&sx<o.x+o.hw&&sz>o.z-o.hd&&sz<o.z+o.hd){
+        if(o.ht<=feetY+1.3&&o.ht>snapTop){snapTop=o.ht;snapObst=o;}
+      }
+    }
+    if(snapTop>feetY+0.001){
+      yawObj.position.y=EYH+snapTop;yVel=0;currentObstacle=snapObst;
+    }
   }
   const prevY=yawObj.position.y;
   yVel-=GRAV*dt;yawObj.position.y+=yVel*dt;
