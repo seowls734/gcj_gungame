@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -48,7 +48,6 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 #wave-hud .kprog{font-size:13px;color:#aaa;margin-top:3px}
 #wave-hud .kbar-wrap{width:160px;height:8px;background:rgba(0,255,80,0.12);border:1px solid rgba(0,255,80,0.3);margin-top:4px;margin-left:auto}
 #wave-hud .kbar{height:100%;background:linear-gradient(90deg,#00cc66,#00ff88);transition:width 0.2s}
-/* enemy type badge */
 #etype-hud{position:absolute;top:80px;right:18px;z-index:10;pointer-events:none;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;color:#aaa;text-align:right;text-shadow:1px 1px 4px #000}
 #stage-select{display:none;position:absolute;inset:0;z-index:30;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;flex-direction:column}
 #stage-select.active{display:flex}
@@ -527,9 +526,7 @@ function buildGun(t){
   return g;
 }
 
-// Weapon state
 let wKey='pistol',wD=WD.pistol,ammo=wD.mag,reloading=false,rldT=0,cdT=0,aiming=false,bstLeft=0,bstT=0;
-// SKIN SYSTEM
 const SKINS=[
   {id:'default',  name:'기본',      pri:0x252525, sec:0x0d0d0d, acc:0x606060, emissive:0x000000, unlock:0},
   {id:'arctic',   name:'아크틱',    pri:0xddeeff, sec:0xaabbcc, acc:0x88aacc, emissive:0x000000, unlock:0},
@@ -583,7 +580,6 @@ function buildSkinUI(){
 skinBtn.addEventListener('click',()=>{buildSkinUI();skinPanel.classList.toggle('active');});
 skinClose.addEventListener('click',()=>skinPanel.classList.remove('active'));
 
-// Map - MODIFIED: addBox stores obstacle top height for climbing
 const LIM=200,PR=0.85,EYH=1.7,OBST=[],PLATS=[];
 const gndM=new THREE.Mesh(new THREE.PlaneGeometry(500,500,50,50),new THREE.MeshStandardMaterial({color:0x161a20,roughness:0.95,metalness:0.05}));
 gndM.rotation.x=-Math.PI/2;gndM.receiveShadow=true;scene.add(gndM);
@@ -597,7 +593,6 @@ function clearMap(){
   mapMeshes.forEach(m=>{scene.remove(m);if(m.geometry)m.geometry.dispose();if(m.material)m.material.dispose();});
   mapMeshes=[];OBST.length=0;PLATS.length=0;
 }
-// CHANGE 1: Store obstacle top height (ht) for Y-aware collision
 function addBox(x,y,z,w,h,d,col,coll){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.88,metalness:0.1}));
   m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
@@ -619,6 +614,19 @@ function addBarrel(x,z,col){
 }
 function addCrate(x,z,s){
   s=s||1.2;addProp(x,s/2,z,s,s,s,0x6b4c2a);addProp(x,s/2,z,s*1.02,s*0.08,s*1.02,0x4a3418);
+}
+// CLIMBABLE STRUCTURES
+function addStaircase(cx,cz,dirX,dirZ,steps,stepH,col){
+  col=col||0x5a5a5a;stepH=stepH||1.0;
+  for(let i=0;i<steps;i++){addBox(cx+dirX*i*2.0,stepH*(i+0.5),cz+dirZ*i*2.0,2.2,stepH,2.2,col);}
+}
+function addClimbStack(cx,cz,levels,col){
+  col=col||0x6a5040;
+  for(let i=0;i<levels;i++){addBox(cx+i*0.6,0.9+i*1.6,cz,1.8,1.4,1.8,col);}
+}
+function addSpiralTower(cx,cz,levels,col){
+  col=col||0x606068;
+  for(let i=0;i<levels;i++){const a=i*1.1,r=1.8;addBox(cx+Math.cos(a)*r,0.9+i*1.5,cz+Math.sin(a)*r,2,1.3,2,col);}
 }
 
 function buildMap(sid){
@@ -847,9 +855,22 @@ function buildMap(sid){
     addBox(-60,2,-90,2,4,40,Dr);addBox(60,2,-90,2,4,40,Dr);addBox(-60,2,90,2,4,40,Dr);addBox(60,2,90,2,4,40,Dr);
     addBox(-25,1.5,65,8,3,4,Dr);addBox(25,1.5,65,8,3,4,Dr);
   }
-  // STAGE DETAIL PROPS
-  if(sid===1){for(let i=-3;i<=3;i++){addLamp(i*30,-50,0xccffaa);addLamp(i*30,50,0xccffaa);}for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,r=40+Math.random()*80;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x556b2f);}for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*60;addCrate(Math.cos(a)*r,Math.sin(a)*r);}}
-  else if(sid===2){for(let i=-5;i<=5;i++){addLamp(i*20,-15,0xffcc66);addLamp(i*20,15,0xffcc66);}for(let i=-3;i<=3;i++){addLamp(-15,i*20,0xffcc66);addLamp(15,i*20,0xffcc66);}for(let i=0;i<15;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*100;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x445544);}}
+  // UNIVERSAL CLIMBABLE STRUCTURES (모든 스테이지 공통)
+  addStaircase(-38,45, 1,0, 5, 1.0, 0x4a4a52);
+  addStaircase(38,-45, -1,0, 5, 1.0, 0x4a4a52);
+  addStaircase(55,85, 0,-1, 5, 1.1, 0x4a4a52);
+  addStaircase(-55,-85, 0,1, 5, 1.1, 0x4a4a52);
+  addStaircase(105,0, 0,1, 6, 1.2, 0x505058);
+  addStaircase(-105,0, 0,-1, 6, 1.2, 0x505058);
+  addSpiralTower(-120,120, 6, 0x606068);
+  addSpiralTower(120,-120, 6, 0x606068);
+  addClimbStack(-15,75, 4, 0x6a5040);
+  addClimbStack(15,-75, 4, 0x6a5040);
+  addClimbStack(75,15, 4, 0x6a5040);
+  addClimbStack(-75,-15, 4, 0x6a5040);
+  addStaircase(0,-115, 0,-1, 7, 1.3, 0x505058);
+  addStaircase(0,115, 0,1, 7, 1.3, 0x505058);
+  if(sid===1){for(let i=-3;i<=3;i++){addLamp(i*30,-50,0xccffaa);addLamp(i*30,50,0xccffaa);}for(let i=0;i<12;i++){const a=Math.random()*Math.PI*2,r=40+Math.random()*80;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x556b2f);}for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*60;addCrate(Math.cos(a)*r,Math.sin(a)*r);}}  else if(sid===2){for(let i=-5;i<=5;i++){addLamp(i*20,-15,0xffcc66);addLamp(i*20,15,0xffcc66);}for(let i=-3;i<=3;i++){addLamp(-15,i*20,0xffcc66);addLamp(15,i*20,0xffcc66);}for(let i=0;i<15;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*100;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x445544);}}
   else if(sid===3){for(let i=-4;i<=4;i++){addLamp(i*25,0,0xff8800);addLamp(0,i*25,0xff8800);}for(let i=0;i<20;i++){const a=Math.random()*Math.PI*2,r=20+Math.random()*100;addBarrel(Math.cos(a)*r,Math.sin(a)*r,0x884400);}}
   else if(sid===4){for(let i=-6;i<=6;i++){addLamp(i*18,-60,0xffaa44);addLamp(i*18,60,0xffaa44);}for(let i=0;i<10;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*80;addCrate(Math.cos(a)*r,Math.sin(a)*r,1.5);}}
   else if(sid===5){for(let i=0;i<8;i++){const a=Math.random()*Math.PI*2,r=30+Math.random()*80;addLamp(Math.cos(a)*r,Math.sin(a)*r,0x88ff44);}}
@@ -862,7 +883,6 @@ function buildMap(sid){
   else if(sid===12){for(let i=0;i<12;i++){const a=i/12*Math.PI*2,r=50;addLamp(Math.cos(a)*r,Math.sin(a)*r,0xff2200);}for(let i=0;i<8;i++){const a=i/8*Math.PI*2,r=100;addLamp(Math.cos(a)*r,Math.sin(a)*r,0xff4400);}}
 }
 
-// isBlocked: skipObst = 플레이어가 현재 올라서 있는 장애물 (그것만 스킵)
 let currentObstacle=null;
 function isBlocked(x,z,p,skipObst){
   p=p||PR;
@@ -872,12 +892,18 @@ function isBlocked(x,z,p,skipObst){
   }
   return false;
 }
+// Y-aware blocking for bullets: passes OVER walls when y > obstacle top
+function isBulletBlocked(x,y,z){
+  for(let o of OBST){
+    if(x>o.x-o.hw&&x<o.x+o.hw&&z>o.z-o.hd&&z<o.z+o.hd&&y<o.ht)return true;
+  }
+  return false;
+}
 function getPF(x,y,z){return 0;}
 
-// BUFF ITEM SYSTEM
 const buffItems=[];
-const BUFF_COLORS={heal:0xff4466,speed:0x44aaff,ammo:0xffcc22,dmg:0xff6600};
-const BUFF_NAMES={heal:'💊 HEAL',speed:'⚡ SPEED',ammo:'🔴 AMMO',dmg:'🔥 DAMAGE'};
+const BUFF_COLORS={heal:0xff4466,speed:0x44aaff,ammo:0xffcc22,dmg:0xff6600,shield:0x44ffaa,firerate:0xff00ff,jump:0x88ff44,score:0xffdd00,regen:0x00ff88,crit:0xff00aa};
+const BUFF_NAMES={heal:'💊 HEAL',speed:'⚡ SPEED',ammo:'🔴 AMMO',dmg:'🔥 DAMAGE',shield:'🛡️ SHIELD',firerate:'🎯 FIRE RATE',jump:'🦘 JUMP',score:'💰 SCORE',regen:'💚 REGEN',crit:'💥 CRIT'};
 function spawnBuffItem(x,y,z,type){
   const grp=new THREE.Group();
   const orb=new THREE.Mesh(new THREE.SphereGeometry(0.32,14,14),new THREE.MeshStandardMaterial({color:BUFF_COLORS[type],roughness:0.2,metalness:0.3,emissive:BUFF_COLORS[type],emissiveIntensity:0.35}));
@@ -907,17 +933,21 @@ function applyBuff(type){
   playSound('pickup');const el=document.getElementById('ehp-text');
   if(type==='heal'){playerHP=Math.min(playerHP+30,100);hpBar.style.width=playerHP+'%';if(el){el.innerText='💊 체력 +30!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='speed'){mods.speedMult=Math.min(mods.speedMult+0.3,2.0);if(el){el.innerText='⚡ 속도 부스트!';setTimeout(()=>el.innerText='',2000);}}
-  else if(type==='ammo'){ammo=wD.mag;ammoEl.innerText=ammo;rldTxt.innerText='';if(el){el.innerText='🔴 탄약 보충!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='ammo'){ammo=Math.floor(wD.mag*mods.magMult);ammoEl.innerText=ammo;rldTxt.innerText='';if(el){el.innerText='🔴 탄약 보충!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='dmg'){mods.dmgMult=Math.min(mods.dmgMult+0.25,2.5);if(el){el.innerText='🔥 피해 증가!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='shield'){mods.armorMult=Math.max(mods.armorMult*0.7,0.1);if(el){el.innerText='🛡️ 방어력 증가!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='firerate'){mods.fireRateMult=Math.max(mods.fireRateMult*0.8,0.2);if(el){el.innerText='🎯 연사력 증가!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='jump'){mods.jumpMult=Math.min(mods.jumpMult+0.25,2.5);if(el){el.innerText='🦘 점프력 +25%!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='score'){const bonus=Math.round(500*mods.bonusScore);score+=bonus;scoreEl.innerText=score;if(el){el.innerText='💰 보너스 +'+bonus+'!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='regen'){mods.regenRate+=1.5;if(el){el.innerText='💚 재생력 증가!';setTimeout(()=>el.innerText='',2000);}}
+  else if(type==='crit'){mods.critChance=Math.min(mods.critChance+0.15,0.95);if(el){el.innerText='💥 크리티컬 +15%!';setTimeout(()=>el.innerText='',2000);}}
 }
 
-// ENEMY SYSTEM — 5 Types: grunt, runner, heavy, exploder, sniper
 const enemies=[],bullets=[],parts=[];
-const enemyBullets=[]; // NEW: for sniper projectiles
+const enemyBullets=[];
 let score=0,playerHP=100,gameOver=false;
 function eMaxHP(){return (3+Math.floor(score/800))*getCurStage().hpMult;}
 
-// NEW: Determine enemy type by stage
 function getEnemyTypeForStage(sid){
   if(sid<=2)return 'grunt';
   const r=Math.random();
@@ -927,7 +957,6 @@ function getEnemyTypeForStage(sid){
   return r<0.18?'grunt':r<0.36?'runner':r<0.56?'heavy':r<0.76?'exploder':'sniper';
 }
 
-// NEW: Fire a sniper enemy projectile
 function spawnEnemyBullet(pos,dir,dmg){
   const b=new THREE.Mesh(new THREE.SphereGeometry(0.20,8,8),new THREE.MeshStandardMaterial({color:0x8822ff,roughness:0.3,emissive:0x440088,emissiveIntensity:0.6}));
   b.position.copy(pos);
@@ -936,7 +965,6 @@ function spawnEnemyBullet(pos,dir,dmg){
   scene.add(b);enemyBullets.push(b);
 }
 
-// NEW: Explosion effect — visual + damage
 function spawnExplosion(pos,radius,dmg){
   for(let i=0;i<22;i++){
     const p=new THREE.Mesh(new THREE.SphereGeometry(0.10+Math.random()*0.14,4,4),
@@ -948,7 +976,6 @@ function spawnExplosion(pos,radius,dmg){
   fireFl.style.background='rgba(255,140,0,0.28)';
   setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',280);
   playSound('explode');
-  // Damage player if within radius
   const pd=yawObj.position.distanceTo(pos);
   if(pd<radius){
     const falloff=1-pd/radius;
@@ -958,7 +985,6 @@ function spawnExplosion(pos,radius,dmg){
     setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',220);
     if(playerHP<=0)endGame();
   }
-  // Splash damage to nearby enemies
   for(let ei=enemies.length-1;ei>=0;ei--){
     const d=enemies[ei].position.distanceTo(pos);
     if(d<radius){
@@ -973,14 +999,13 @@ function spawnExplosion(pos,radius,dmg){
   }
 }
 
-// NEW: Update enemy projectiles (snipers)
 function updateEnemyBullets(dt){
   const px=yawObj.position.x,py=yawObj.position.y,pz=yawObj.position.z;
   for(let i=enemyBullets.length-1;i>=0;i--){
     const b=enemyBullets[i];
     b.position.addScaledVector(b.userData.vel,dt);
     b.userData.life-=dt;
-    if(b.userData.life<=0||isBlocked(b.position.x,b.position.z,0.1)){
+    if(b.userData.life<=0||isBulletBlocked(b.position.x,b.position.y,b.position.z)){
       scene.remove(b);enemyBullets.splice(i,1);continue;
     }
     const dx=b.position.x-px,dy=b.position.y-py,dz=b.position.z-pz;
@@ -996,7 +1021,6 @@ function updateEnemyBullets(dt){
   }
 }
 
-// MODIFIED: makeEnemy now supports 5 types
 function makeEnemy(type){
   type=type||'grunt';
   const g=new THREE.Group();const maxHP=eMaxHP();
@@ -1004,7 +1028,6 @@ function makeEnemy(type){
   const tier=Math.min(3,stageBase+Math.floor(stageWaveNum/3));
   const isElite=currentStageId>=10&&Math.random()<0.4;
 
-  // Type configuration table
   const TC={
     grunt:   {hpM:1.0, sclM:0.85+Math.random()*0.3, bc:0xcc2222,ac:0x881111,ec:0xff3300,dmgM:1.0, spdM:1.0},
     runner:  {hpM:0.42,sclM:0.62+Math.random()*0.10,  bc:0xff3300,ac:0xaa1100,ec:0xff7700,dmgM:0.7, spdM:2.15},
@@ -1026,14 +1049,12 @@ function makeEnemy(type){
 
   function pa(geo,m2,x,y,z,rx,ry){const mesh=new THREE.Mesh(geo,m2);mesh.position.set(x,y,z);if(rx)mesh.rotation.x=rx;if(ry)mesh.rotation.y=ry;mesh.castShadow=true;g.add(mesh);return mesh;}
 
-  // Torso
   pa(new THREE.BoxGeometry(1.0,1.3,0.60),bm,0,2.2,0);
   pa(new THREE.BoxGeometry(1.02,0.30,0.62),am,0,2.72,0);
   pa(new THREE.BoxGeometry(0.28,0.28,0.64),am,-0.36,2.20,0);
   pa(new THREE.BoxGeometry(0.28,0.28,0.64),am, 0.36,2.20,0);
   pa(new THREE.BoxGeometry(1.0,0.18,0.62),am,0,1.58,0);
   pa(new THREE.BoxGeometry(0.14,0.12,0.10),new THREE.MeshStandardMaterial({color:0xddaa22,roughness:0.4,metalness:0.8}),0,1.60,0.32);
-  // Head
   pa(new THREE.BoxGeometry(0.72,0.68,0.68),sm,0,3.32,0);
   pa(new THREE.BoxGeometry(0.76,0.32,0.72),am,0,3.58,0);
   pa(new THREE.BoxGeometry(0.72,0.10,0.74),am,0,3.44,-0.02);
@@ -1048,7 +1069,6 @@ function makeEnemy(type){
   pa(new THREE.BoxGeometry(0.08,0.24,0.24),am,-0.40,3.32,0);
   pa(new THREE.BoxGeometry(0.08,0.24,0.24),am, 0.40,3.32,0);
   pa(new THREE.BoxGeometry(0.30,0.20,0.30),sm,0,2.96,0);
-  // Arms
   const aLG=new THREE.Group();aLG.position.set(-0.62,2.75,0);
   function addArm(grp){
     const up=new THREE.Mesh(new THREE.BoxGeometry(0.26,0.60,0.26),bm);up.position.y=-0.30;up.castShadow=true;grp.add(up);
@@ -1059,7 +1079,6 @@ function makeEnemy(type){
   }
   addArm(aLG);g.add(aLG);
   const aRG=new THREE.Group();aRG.position.set(0.62,2.75,0);addArm(aRG);g.add(aRG);
-  // Legs
   const lLG=new THREE.Group();lLG.position.set(-0.26,1.58,0);
   function addLeg(grp){
     const thigh=new THREE.Mesh(new THREE.BoxGeometry(0.30,0.60,0.30),bm);thigh.position.y=-0.30;thigh.castShadow=true;grp.add(thigh);
@@ -1071,7 +1090,6 @@ function makeEnemy(type){
   addLeg(lLG);g.add(lLG);
   const lRG=new THREE.Group();lRG.position.set(0.26,1.58,0);addLeg(lRG);g.add(lRG);
 
-  // Type-specific visual additions
   if(type==='heavy'){
     pa(new THREE.BoxGeometry(1.10,1.40,0.12),am,0,2.20,0.32);
     pa(new THREE.BoxGeometry(0.40,0.50,0.14),am,-0.56,2.20,0.28);
@@ -1080,12 +1098,10 @@ function makeEnemy(type){
     pa(new THREE.BoxGeometry(0.36,0.20,0.36),am,0,3.60,0);
   }
   if(type==='sniper'){
-    // Rifle prop
     pa(new THREE.BoxGeometry(0.06,0.06,0.70),new THREE.MeshStandardMaterial({color:0x333333,roughness:0.6}),0.36,2.50,-0.40);
     pa(new THREE.BoxGeometry(0.04,0.04,0.85),new THREE.MeshStandardMaterial({color:0x444444,roughness:0.5,metalness:0.5}),0.36,2.60,-0.52);
   }
   if(type==='exploder'){
-    // Explosive barrel on back
     pa(new THREE.BoxGeometry(0.50,0.62,0.50),new THREE.MeshStandardMaterial({color:0xffaa00,roughness:0.5,emissive:0x442200,emissiveIntensity:0.35}),0,2.10,-0.46);
     pa(new THREE.BoxGeometry(0.52,0.10,0.52),new THREE.MeshStandardMaterial({color:0x333300,roughness:0.8}),0,1.84,-0.46);
     pa(new THREE.BoxGeometry(0.52,0.10,0.52),new THREE.MeshStandardMaterial({color:0x333300,roughness:0.8}),0,2.46,-0.46);
@@ -1101,7 +1117,6 @@ function makeEnemy(type){
   return g;
 }
 
-// MODIFIED: spawnEnemy selects type by stage
 function spawnEnemy(){
   if(gameOver||!waveActive||choosingStage||showingLobby)return;
   const eType=getEnemyTypeForStage(currentStageId);
@@ -1118,7 +1133,6 @@ function startWaveSpawn(){
   spawnInterval=setInterval(spawnEnemy,rate);
 }
 
-// Wave HUD refs
 const waveNumEl=document.getElementById('wave-num');
 const stageNumEl=document.getElementById('stage-num');
 const killCurEl=document.getElementById('kill-cur');
@@ -1214,6 +1228,12 @@ function startStage(sid){
   spawnBuffItem(0,0.6,-50,'speed');spawnBuffItem(-50,0.6,50,'speed');
   spawnBuffItem(50,0.6,-50,'ammo');spawnBuffItem(-20,0.6,-20,'ammo');
   spawnBuffItem(20,0.6,20,'dmg');spawnBuffItem(-60,0.6,-60,'dmg');spawnBuffItem(60,0.6,60,'dmg');
+  spawnBuffItem(-80,0.6,80,'shield');spawnBuffItem(80,0.6,-80,'shield');
+  spawnBuffItem(-30,0.6,-90,'firerate');spawnBuffItem(30,0.6,90,'firerate');
+  spawnBuffItem(-90,0.6,0,'jump');spawnBuffItem(90,0.6,0,'jump');
+  spawnBuffItem(0,0.6,100,'score');spawnBuffItem(0,0.6,-100,'score');
+  spawnBuffItem(-110,0.6,-30,'regen');spawnBuffItem(110,0.6,30,'regen');
+  spawnBuffItem(-40,0.6,0,'crit');spawnBuffItem(40,0.6,0,'crit');
   if(isMobile){instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>터치하여 전투 시작</p><p>왼쪽 조이스틱: 이동 | 오른쪽 드래그: 시점</p><p>FIRE: 사격 | ADS: 조준 | R: 재장전 | ◀▶: 무기</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';}
   else{instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>클릭하여 전투 시작</p><p>W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p><p>1~0 / Q / E 무기 선택 · 마우스 휠 무기 전환</p><div class="hint">장애물 위 점프 가능! · 5종 적 등장 · 폭발탄 광역피해 · '+st.waves+'웨이브 클리어 시 다음 스테이지 해금</div>';}
   instrEl.style.display='block';
@@ -1281,7 +1301,6 @@ let wave=1,waveKills=0,waveTarget=10,waveActive=true,choosingStage=false,spawnIn
 
 const mods={dmgMult:1.0,speedMult:1.0,armorMult:1.0,bonusScore:1.0,splashRad:0.0,fireRateMult:1.0,lifeSteal:0.0,critChance:0.0,magMult:1.0,jumpMult:1.0,regenRate:0.0,thorns:0.0};
 
-// UPGRADES - MODIFIED: splash radius 2.2 → 6.0
 const UPGRADES=[
   {id:'medkit',   icon:'🩹', name:'긴급 의무키트', desc:'즉시 HP +40 회복', tag:'HEAL',   tc:'tag-heal', apply:()=>{ playerHP=Math.min(playerHP+40,100); hpBar.style.width=playerHP+'%'; }},
   {id:'shield',   icon:'💊', name:'실드 부스터',   desc:'최대 HP +20', tag:'HEAL', tc:'tag-heal', apply:()=>{ playerHP=Math.min(playerHP+20,120); hpBar.style.width=(playerHP/120*100)+'%'; }},
@@ -1309,12 +1328,10 @@ const UPGRADES=[
   {id:'scavenger',icon:'🔍', name:'탄약 수집가',    desc:'처치 시 탄약 +3 회복', tag:'UTIL', tc:'tag-util', apply:()=>{ mods._scavenger=true; }},
 ];
 
-// Player
 let mF=false,mB=false,mL=false,mR=false,mouseDown=false;
 const vel=new THREE.Vector3();let yVel=0,onGnd=true;
 const GRAV=18,JUMP=8;let lastT=performance.now();
 
-// Events
 instrEl.addEventListener('click',()=>{
   if(showingLobby)return;
   if(gameOver){showStageLobby(false);return;}
@@ -1344,7 +1361,6 @@ document.addEventListener('wheel',e=>{
   switchWep(WKEYS[idx]);
 },{passive:false});
 
-// MOBILE TOUCH CONTROLS
 if(isMobile){
   const lookZone=document.getElementById('look-zone');const joyZone=document.getElementById('joystick-zone');
   const joyBase=document.getElementById('joystick-base');const joyKnob=document.getElementById('joystick-knob');
@@ -1420,7 +1436,7 @@ function fireSingle(){
 function fireLaser(){
   playSound('shoot');const dir=new THREE.Vector3();camera.getWorldDirection(dir);
   const origin=camera.position.clone();origin.y-=0.06;
-  let maxDist=180;for(let t2=1;t2<maxDist;t2+=0.8){if(isBlocked(origin.x+dir.x*t2,origin.z+dir.z*t2,0.05)){maxDist=t2;break;}}
+  let maxDist=180;for(let t2=1;t2<maxDist;t2+=0.8){if(isBulletBlocked(origin.x+dir.x*t2,origin.y+dir.y*t2,origin.z+dir.z*t2)){maxDist=t2;break;}}
   const hits=[];
   for(let j=0;j<enemies.length;j++){
     const e=enemies[j];const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
@@ -1457,7 +1473,6 @@ function fireLaser(){
 
 function shoot(){if(gameOver||reloading||cdT>0)return;if(ammo<=0){startReload();return;}if(wD.isLaser){fireLaser();}else if(wD.bst){fireSingle();bstLeft=wD.bst-1;bstT=wD.bdt;}else fireSingle();cdT=wD.cd*mods.fireRateMult;}
 
-// MODIFIED: clearAll includes enemyBullets
 function clearAll(){
   enemies.forEach(e=>scene.remove(e));enemies.length=0;
   bullets.forEach(b=>scene.remove(b));bullets.length=0;
@@ -1469,7 +1484,6 @@ function clearAll(){
 function resetGame(){clearAll();if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}stageEl.classList.remove('active');gameOver=false;showingLobby=false;choosingStage=false;hpBar.style.width='100%';scoreEl.innerText='0';yawObj.position.set(0,EYH,60);camera.rotation.set(0,0,0);camera.fov=75;camera.updateProjectionMatrix();gunGrp.position.set(0.24,-0.24,-0.50);gunGrp.rotation.set(0,0,0);rebuildGun('pistol');updateUI();updateWBar();mouseDown=false;aiming=false;gunGrp.visible=true;const scopeEl=document.getElementById('scope-overlay');if(scopeEl) scopeEl.style.display='none';xhEl.style.display='block';xhEl.classList.remove('ads');showStageLobby(false);}
 function endGame(){gameOver=true;mobileActive=false;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">스테이지 점수: <strong style="color:#fff">'+score+'</strong></p><p style="font-size:14px;color:#ffcc00;margin:6px 0;">누적 총점: '+totalScore+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
 
-// CHANGE 3: updatePlayer with obstacle TOP landing
 function updatePlayer(dt){
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
   const spd=120*mods.speedMult;
@@ -1479,11 +1493,9 @@ function updatePlayer(dt){
   const dx=yawObj.position.x-px,dz=yawObj.position.z-pz;
   yawObj.position.x=px;yawObj.position.z=pz;
   yawObj.position.x=Math.max(-LIM+2,Math.min(LIM-2,px+dx));
-  // currentObstacle만 스킵 — 다른 모든 벽은 정상 충돌
   if(isBlocked(yawObj.position.x,yawObj.position.z,PR,currentObstacle))yawObj.position.x=px;
   yawObj.position.z=Math.max(-LIM+2,Math.min(LIM-2,pz+dz));
   if(isBlocked(yawObj.position.x,yawObj.position.z,PR,currentObstacle))yawObj.position.z=pz;
-  // 장애물에서 걸어나갔으면 추적 해제
   if(currentObstacle){
     const co=currentObstacle,nx=yawObj.position.x,nz=yawObj.position.z;
     if(nx<co.x-co.hw-0.4||nx>co.x+co.hw+0.4||nz<co.z-co.hd-0.4||nz>co.z+co.hd+0.4)
@@ -1493,7 +1505,6 @@ function updatePlayer(dt){
   yVel-=GRAV*dt;yawObj.position.y+=yVel*dt;
   if(yawObj.position.y<=EYH){yawObj.position.y=EYH;yVel=0;onGnd=true;currentObstacle=null;}
   else{onGnd=false;}
-  // 장애물 상단 착지
   if(yVel<=0){
     for(let o of OBST){
       const nx=yawObj.position.x,nz=yawObj.position.z;
@@ -1533,7 +1544,6 @@ function updateTimers(dt){
 
 let ehpFlash=0;
 
-// CHANGE 4: updateEnemies with type-specific AI behaviors
 function updateEnemies(dt){
   const cf=new THREE.Vector3(yawObj.position.x,0,yawObj.position.z);
   for(let i=enemies.length-1;i>=0;i--){
@@ -1545,7 +1555,6 @@ function updateEnemies(dt){
     const eType=ud.eType||'grunt';
 
     if(eType==='sniper'){
-      // Sniper: maintain distance 40-70, strafe, shoot projectiles
       if(dist<38){
         const op=e.position.clone();e.position.addScaledVector(dir,-espd*0.7*dt);
         if(isBlocked(e.position.x,e.position.z,0.8))e.position.copy(op);
@@ -1565,11 +1574,9 @@ function updateEnemies(dt){
         spawnEnemyBullet(e.position.clone().add(new THREE.Vector3(0,3.2,0)),shootDir,16);
       }
     } else if(eType==='exploder'){
-      // Exploder: sprint at player, explode when close or after charge timer
       if(dist>2.5){const op=e.position.clone();e.position.addScaledVector(dir,espd*dt);if(isBlocked(e.position.x,e.position.z,0.8))e.position.copy(op);}
       if(dist<14&&!ud._exploding){
         ud.explodeT+=dt;
-        // Flash body when charging
         const pulse=Math.abs(Math.sin(ud.explodeT*Math.PI*7));
         ud.bm.emissive.setRGB(pulse*0.7,pulse*0.15,0);ud.bm.emissiveIntensity=pulse;
         if(ud.explodeT>3.2||dist<3.2){
@@ -1580,7 +1587,6 @@ function updateEnemies(dt){
         }
       }
     } else {
-      // grunt / runner / heavy: move toward player
       if(dist>2.3){const op=e.position.clone();e.position.addScaledVector(dir,espd*dt);if(isBlocked(e.position.x,e.position.z,0.8))e.position.copy(op);}
     }
 
@@ -1589,7 +1595,6 @@ function updateEnemies(dt){
     const sw=dist>2.3?Math.sin(ud.walkT)*0.6:0;
     ud.aLG.rotation.x=sw;ud.aRG.rotation.x=-sw;ud.lLG.rotation.x=-sw;ud.lRG.rotation.x=sw;
     if(ud.flashT>0){ud.flashT-=dt;const t2=Math.max(0,ud.flashT/0.15);ud.bm.color.setRGB(1,t2*0.35,t2*0.35);if(ud.am)ud.am.color.setRGB(0.9+t2*0.1,t2*0.3,t2*0.3);}
-    // Contact damage (exploder uses proximity explosion instead)
     if(eType!=='exploder'&&dist<2.3&&Math.abs(yawObj.position.y-EYH)<3.5){
       const dmgPerSec=13*(ud.dmgMult||1.0);
       playerHP-=dmgPerSec*dt*mods.armorMult;if(playerHP<0)playerHP=0;hpBar.style.width=playerHP+'%';
@@ -1600,11 +1605,10 @@ function updateEnemies(dt){
   }
 }
 
-// CHANGE 5: updateBullets — fixed splash damage + exploder on death
 function updateBullets(dt){
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];b.position.addScaledVector(b.userData.vel,dt);b.userData.life+=dt;
-    if(isBlocked(b.position.x,b.position.z,0.1)){scene.remove(b);bullets.splice(i,1);continue;}
+    if(isBulletBlocked(b.position.x,b.position.y,b.position.z)){scene.remove(b);bullets.splice(i,1);continue;}
     let rm=false;
     for(let j=enemies.length-1;j>=0;j--){
       const e=enemies[j],ud=e.userData;
@@ -1620,14 +1624,12 @@ function updateBullets(dt){
         if(ud.hp>0){ehpTxt.innerText='['+hz.name+'] 적 HP: '+ud.hp.toFixed(1)+' / '+ud.maxHP;}
         else{
           const ep=e.position.clone();
-          scene.remove(e);enemies.splice(j,1); // remove first to avoid index issues
+          scene.remove(e);enemies.splice(j,1);
           const isExp=ud.eType==='exploder';
           if(isExp){
-            // Exploder explodes on death
             spawnExplosion(new THREE.Vector3(ep.x,ep.y+1.5,ep.z),9,78);
           } else {
             spawnFX(ep);
-            // Splash damage from explosive bullet upgrade (fixed: uses spawnExplosion)
             if(mods.splashRad>0){
               spawnExplosion(ep,mods.splashRad,effectiveDmg*0.65);
             }
@@ -1661,7 +1663,6 @@ function tickHitZone(dt){if(hzTimer>0){hzTimer-=dt;if(hzTimer<=0){hzEl.style.opa
 
 function updateLaserBeams(dt){for(let i=laserBeams.length-1;i>=0;i--){const lb=laserBeams[i];lb.life-=dt;const alpha=lb.life/lb.initLife;lb.mesh.material.opacity=Math.max(0,alpha)*(lb.mesh.material.color.getHex()===0xffffff?0.95:0.35);if(lb.life<=0){scene.remove(lb.mesh);lb.mesh.geometry.dispose();lb.mesh.material.dispose();laserBeams.splice(i,1);}}}
 
-// CHANGE 6: animate — add updateEnemyBullets
 function animate(){
   requestAnimationFrame(animate);const now=performance.now(),dt=Math.min((now-lastT)/1000,0.05);lastT=now;
   const isPlaying=(ctrl.isLocked||mobileActive)&&!gameOver;
