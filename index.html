@@ -13,6 +13,8 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 #hp-bar{height:100%;background:linear-gradient(90deg,#c0392b,#e74c3c);transition:width 0.1s}
 #score-text{font-size:20px;font-weight:bold;margin-bottom:6px}
 #weapon-text{font-size:16px;color:#7ecfff;margin-bottom:3px}
+#char-info{font-size:13px;color:#ffcc66;margin-bottom:8px;letter-spacing:1px}
+#char-info #char-icon{font-size:15px}
 #ammo-text{font-size:14px;margin-bottom:4px}
 #reload-text{font-size:13px;color:#7ec8ff;min-height:18px}
 #dmg-text{font-size:13px;color:#ffaa44;min-height:18px}
@@ -91,6 +93,24 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 #reset-save{margin-top:28px;padding:8px 22px;background:rgba(80,0,0,0.4);border:1px solid rgba(255,60,60,0.3);color:#aa5555;font-family:'Courier New',monospace;font-size:11px;letter-spacing:2px;cursor:pointer;transition:all 0.15s}
 #reset-save:hover{background:rgba(120,0,0,0.6);border-color:rgba(255,80,80,0.6);color:#ff6666}
 #skin-btn{position:absolute;top:18px;left:50%;transform:translateX(50px);z-index:14;pointer-events:auto;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.2);color:#aaa;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer;display:block}
+#char-btn{position:absolute;top:18px;left:50%;transform:translateX(-130px);z-index:14;pointer-events:auto;background:rgba(255,200,100,0.12);border:1px solid rgba(255,200,100,0.4);color:#ffcc66;font-family:'Courier New',monospace;font-size:10px;letter-spacing:1px;padding:4px 12px;cursor:pointer;display:block}
+#char-btn:hover{background:rgba(255,200,100,0.25);color:#ffdd88}
+#char-panel{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(0,0,0,0.95);border:1px solid rgba(255,200,100,0.35);padding:22px 26px;font-family:'Courier New',monospace;min-width:520px;max-width:90vw;max-height:86vh;overflow-y:auto}
+#char-panel.active{display:block}
+#char-panel .stitle{color:#ffcc66;font-size:15px;letter-spacing:3px;margin-bottom:16px;text-align:center}
+.char-grid{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:620px}
+.char-card{width:152px;background:rgba(10,16,24,0.95);border:2px solid rgba(255,255,255,0.08);padding:14px 10px 12px;cursor:pointer;text-align:center;transition:all 0.15s;position:relative;box-sizing:border-box}
+.char-card:hover:not(.locked){border-color:#ffcc66;background:rgba(35,25,10,0.95);transform:translateY(-2px)}
+.char-card.selected{border-color:#00ff88;box-shadow:0 0 14px rgba(0,255,100,0.35);background:rgba(0,30,16,0.95)}
+.char-card.locked{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.char-card .ci{font-size:34px;display:block;margin-bottom:6px}
+.char-card .cn{font-size:13px;color:#fff;font-weight:bold;margin-bottom:3px;letter-spacing:1px}
+.char-card .cd{font-size:9.5px;color:#888;line-height:1.45;margin-bottom:8px;min-height:26px}
+.char-card .cstats{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.char-card .cst{background:rgba(100,200,255,0.12);padding:2px 5px;border-radius:2px;font-size:9px;color:#aaccff;letter-spacing:0.5px}
+.char-card .cul{font-size:9px;color:#ffcc00;margin-top:8px;letter-spacing:1px}
+.char-card .cbadge{position:absolute;top:6px;right:8px;font-size:9px;letter-spacing:1px;padding:2px 5px;color:#00ff88;border:1px solid rgba(0,255,100,0.4);background:rgba(0,100,40,0.2)}
+#char-panel .sclose{display:block;margin:16px auto 0;background:rgba(0,255,100,0.15);border:1px solid rgba(0,255,100,0.4);color:#00ff88;font-family:'Courier New',monospace;font-size:11px;padding:6px 22px;cursor:pointer;letter-spacing:1px}
 #skin-panel{display:none;position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:40;background:rgba(0,0,0,0.95);border:1px solid rgba(0,255,100,0.3);padding:20px 24px;font-family:'Courier New',monospace;min-width:280px;max-height:80vh;overflow-y:auto}
 #skin-panel.active{display:block}
 #skin-panel .stitle{color:#00ff88;font-size:14px;letter-spacing:2px;margin-bottom:14px;text-align:center}
@@ -150,7 +170,7 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 <div id="ui">
   <div class="label">SURVIVOR HP</div>
   <div class="bar-wrap"><div id="hp-bar"></div></div>
-  <div id="score-text">SCORE: <span id="score">0</span></div>
+  <div id="char-info"><span id="char-icon">🪖</span> <span id="char-name">솔져</span></div>
   <div id="weapon-text">WEAPON: <span id="wname">PISTOL</span></div>
   <div id="ammo-text">AMMO: <span id="ammo">15</span> / <span id="maxammo">15</span></div>
   <div id="reload-text"></div>
@@ -199,6 +219,12 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 <div id="menu-btn">MENU</div>
 <div id="sens-btn">SENS</div>
 <div id="skin-btn">SKIN</div>
+<div id="char-btn">CHAR</div>
+<div id="char-panel">
+  <div class="stitle">CHARACTER</div>
+  <div class="char-grid" id="char-grid"></div>
+  <button class="sclose" id="char-close">OK</button>
+</div>
 <div id="skin-panel">
   <div class="stitle">GUN SKIN</div>
   <div class="skin-grid" id="skin-grid"></div>
@@ -334,7 +360,6 @@ gunGrp.position.set(0.24,-0.24,-0.50);
 let gunModel=null,gunKickZ=0,gunKickRX=0;
 
 const hpBar=document.getElementById('hp-bar');
-const scoreEl=document.getElementById('score');
 const ammoEl=document.getElementById('ammo');
 const maxAmEl=document.getElementById('maxammo');
 const rldTxt=document.getElementById('reload-text');
@@ -568,11 +593,11 @@ const skinClose=document.getElementById('skin-close');
 function buildSkinUI(){
   skinGrid.innerHTML='';
   SKINS.forEach(sk=>{
-    const ts=totalScore||0;const unlocked=ts>=sk.unlock||sk.unlock===0;
+    const cs=clearedStages.size;const unlocked=(cs*1000)>=sk.unlock||sk.unlock===0;
     const el=document.createElement('div');
     el.className='skin-item'+(currentSkin===sk.id?' selected':'');
     if(!unlocked)el.style.opacity='0.35';
-    el.innerHTML='<div class="sdot" style="background:linear-gradient(135deg,#'+sk.pri.toString(16).padStart(6,'0')+',#'+sk.acc.toString(16).padStart(6,'0')+')"></div><div class="sname">'+sk.name+'</div>'+(unlocked?'':'<div class="slocked">🔒'+sk.unlock+'</div>');
+    el.innerHTML='<div class="sdot" style="background:linear-gradient(135deg,#'+sk.pri.toString(16).padStart(6,'0')+',#'+sk.acc.toString(16).padStart(6,'0')+')"></div><div class="sname">'+sk.name+'</div>'+(unlocked?'':'<div class="slocked">🔒'+Math.ceil(sk.unlock/1000)+'st</div>');
     if(unlocked){el.addEventListener('click',()=>{currentSkin=sk.id;localStorage.setItem('ts_skin',sk.id);rebuildGun(wKey);buildSkinUI();});}
     skinGrid.appendChild(el);
   });
@@ -902,8 +927,8 @@ function isBulletBlocked(x,y,z){
 function getPF(x,y,z){return 0;}
 
 const buffItems=[];
-const BUFF_COLORS={heal:0xff4466,speed:0x44aaff,ammo:0xffcc22,dmg:0xff6600,shield:0x44ffaa,firerate:0xff00ff,jump:0x88ff44,score:0xffdd00,regen:0x00ff88,crit:0xff00aa};
-const BUFF_NAMES={heal:'💊 HEAL',speed:'⚡ SPEED',ammo:'🔴 AMMO',dmg:'🔥 DAMAGE',shield:'🛡️ SHIELD',firerate:'🎯 FIRE RATE',jump:'🦘 JUMP',score:'💰 SCORE',regen:'💚 REGEN',crit:'💥 CRIT'};
+const BUFF_COLORS={heal:0xff4466,speed:0x44aaff,ammo:0xffcc22,dmg:0xff6600,shield:0x44ffaa,firerate:0xff00ff,jump:0x88ff44,regen:0x00ff88,crit:0xff00aa};
+const BUFF_NAMES={heal:'💊 HEAL',speed:'⚡ SPEED',ammo:'🔴 AMMO',dmg:'🔥 DAMAGE',shield:'🛡️ SHIELD',firerate:'🎯 FIRE RATE',jump:'🦘 JUMP',regen:'💚 REGEN',crit:'💥 CRIT'};
 function spawnBuffItem(x,y,z,type){
   const grp=new THREE.Group();
   const orb=new THREE.Mesh(new THREE.SphereGeometry(0.32,14,14),new THREE.MeshStandardMaterial({color:BUFF_COLORS[type],roughness:0.2,metalness:0.3,emissive:BUFF_COLORS[type],emissiveIntensity:0.35}));
@@ -931,22 +956,22 @@ function updateBuffItems(dt){
 }
 function applyBuff(type){
   playSound('pickup');const el=document.getElementById('ehp-text');
-  if(type==='heal'){playerHP=Math.min(playerHP+30,100);hpBar.style.width=playerHP+'%';if(el){el.innerText='💊 체력 +30!';setTimeout(()=>el.innerText='',2000);}}
+  if(type==='heal'){playerHP=Math.min(playerHP+30,playerMaxHP);updateHPBar();if(el){el.innerText='💊 체력 +30!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='speed'){mods.speedMult=Math.min(mods.speedMult+0.3,2.0);if(el){el.innerText='⚡ 속도 부스트!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='ammo'){ammo=Math.floor(wD.mag*mods.magMult);ammoEl.innerText=ammo;rldTxt.innerText='';if(el){el.innerText='🔴 탄약 보충!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='dmg'){mods.dmgMult=Math.min(mods.dmgMult+0.25,2.5);if(el){el.innerText='🔥 피해 증가!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='shield'){mods.armorMult=Math.max(mods.armorMult*0.7,0.1);if(el){el.innerText='🛡️ 방어력 증가!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='firerate'){mods.fireRateMult=Math.max(mods.fireRateMult*0.8,0.2);if(el){el.innerText='🎯 연사력 증가!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='jump'){mods.jumpMult=Math.min(mods.jumpMult+0.25,2.5);if(el){el.innerText='🦘 점프력 +25%!';setTimeout(()=>el.innerText='',2000);}}
-  else if(type==='score'){const bonus=Math.round(500*mods.bonusScore);score+=bonus;scoreEl.innerText=score;if(el){el.innerText='💰 보너스 +'+bonus+'!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='regen'){mods.regenRate+=1.5;if(el){el.innerText='💚 재생력 증가!';setTimeout(()=>el.innerText='',2000);}}
   else if(type==='crit'){mods.critChance=Math.min(mods.critChance+0.15,0.95);if(el){el.innerText='💥 크리티컬 +15%!';setTimeout(()=>el.innerText='',2000);}}
 }
 
 const enemies=[],bullets=[],parts=[];
 const enemyBullets=[];
-let score=0,playerHP=100,gameOver=false;
-function eMaxHP(){return (3+Math.floor(score/800))*getCurStage().hpMult;}
+let sessionKills=0,totalKills=0,playerHP=100,playerMaxHP=100,gameOver=false;
+function updateHPBar(){hpBar.style.width=Math.max(0,Math.min(100,playerHP/playerMaxHP*100))+'%';}
+function eMaxHP(){return (3+Math.floor(sessionKills/8))*getCurStage().hpMult;}
 
 function getEnemyTypeForStage(sid){
   if(sid<=2)return 'grunt';
@@ -980,7 +1005,7 @@ function spawnExplosion(pos,radius,dmg){
   if(pd<radius){
     const falloff=1-pd/radius;
     playerHP-=dmg*falloff*mods.armorMult;
-    hpBar.style.width=Math.max(0,playerHP)+'%';
+    updateHPBar();
     hitFl.style.background='rgba(255,100,0,0.35)';
     setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',220);
     if(playerHP<=0)endGame();
@@ -1011,7 +1036,7 @@ function updateEnemyBullets(dt){
     const dx=b.position.x-px,dy=b.position.y-py,dz=b.position.z-pz;
     if(Math.sqrt(dx*dx+dy*dy+dz*dz)<1.4){
       playerHP-=b.userData.dmg*mods.armorMult;
-      hpBar.style.width=Math.max(0,playerHP)+'%';
+      updateHPBar();
       hitFl.style.background='rgba(180,0,255,0.22)';
       setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',140);
       playSound('hurt');
@@ -1154,8 +1179,8 @@ function updateWaveHUD(){
 }
 
 function onKill(){
-  playSound('kill');waveKills++;score+=Math.round(100*mods.bonusScore);scoreEl.innerText=score;updateWaveHUD();
-  if(mods.lifeSteal>0){playerHP=Math.min(playerHP+mods.lifeSteal,100);hpBar.style.width=playerHP+'%';}
+  playSound('kill');waveKills++;sessionKills++;totalKills++;updateWaveHUD();
+  if(mods.lifeSteal>0){playerHP=Math.min(playerHP+mods.lifeSteal,playerMaxHP);updateHPBar();}
   if(mods._scavenger){ammo=Math.min(ammo+3,Math.floor(wD.mag*mods.magMult));ammoEl.innerText=ammo;}
   if(waveKills>=waveTarget) waveComplete();
 }
@@ -1173,31 +1198,30 @@ function waveComplete(){
 }
 
 function stageComplete(){
-  clearedStages.add(currentStageId);totalScore+=score;
-  if(!bestScores[currentStageId]||score>bestScores[currentStageId]) bestScores[currentStageId]=score;
+  clearedStages.add(currentStageId);
   currentStageId=0;stageWaveNum=0;saveProg();choosingStage=true;ctrl.unlock();showStageLobby(true);
 }
 
 function showStageLobby(afterClear){
   showingLobby=true;choosingStage=true;mobileActive=false;ctrl.unlock();instrEl.style.display='none';
   const clearMsg=document.getElementById('lobby-clear-msg');const scoreTxt=document.getElementById('lobby-score-txt');
-  if(afterClear){const st=getCurStage();clearMsg.innerText='✓  '+st.name+' 클리어!';scoreTxt.innerText='스테이지 점수: '+score+'  |  누적 총점: '+totalScore;}
-  else{clearMsg.innerText='';scoreTxt.innerText=totalScore>0?'누적 총점: '+totalScore:'';}
+  if(afterClear){const st=getCurStage();clearMsg.innerText='✓  '+st.name+' 클리어!';scoreTxt.innerText='클리어 스테이지: '+clearedStages.size+' / '+STAGES.length;}
+  else{clearMsg.innerText='';scoreTxt.innerText='클리어 스테이지: '+clearedStages.size+' / '+STAGES.length;}
   const cardsEl=document.getElementById('lobby-cards');cardsEl.innerHTML='';
   STAGES.forEach(s=>{
     const unlocked=s.id===1||clearedStages.has(s.id-1);const cleared=clearedStages.has(s.id);
     const card=document.createElement('div');
     card.className='lobby-card'+(cleared?' lclr':'')+(!unlocked?' lk':'');
     const stars=Array.from({length:5},(_,i)=>'<div class="lstar'+(i<s.diff?' on':'')+'"></div>').join('');
-    const best=bestScores[s.id];const sv2=loadSave();const hasResume=sv2.lastStage===s.id&&sv2.lastWave>1;
-    card.innerHTML=(cleared?'<div class="lbadge lbadge-clear">CLEAR</div>':'')+(!unlocked?'<div class="lbadge lbadge-lock">🔒</div>':'')+(hasResume?'<div class="lbadge" style="color:#ffcc00;border:1px solid rgba(255,200,0,0.4);background:rgba(100,80,0,0.2)">WAVE '+sv2.lastWave+'</div>':'')+'<span class="li">'+s.icon+'</span>'+'<div class="ln">'+s.name+'</div>'+'<div class="ls">'+s.sub+'</div>'+'<div class="ldiff">'+stars+'</div>'+'<div class="ldesc">'+s.desc+'</div>'+(hasResume?'<div class="lwv" style="color:#ffcc00;">▶ WAVE '+sv2.lastWave+'부터 이어하기</div>':'')+(best?'<div class="lwv" style="color:#ffcc00;">BEST: '+best+'</div>':'')+'<div class="lwv">WAVES: '+s.waves+'</div>';
+    const sv2=loadSave();const hasResume=sv2.lastStage===s.id&&sv2.lastWave>1;
+    card.innerHTML=(cleared?'<div class="lbadge lbadge-clear">CLEAR</div>':'')+(!unlocked?'<div class="lbadge lbadge-lock">🔒</div>':'')+(hasResume?'<div class="lbadge" style="color:#ffcc00;border:1px solid rgba(255,200,0,0.4);background:rgba(100,80,0,0.2)">WAVE '+sv2.lastWave+'</div>':'')+'<span class="li">'+s.icon+'</span>'+'<div class="ln">'+s.name+'</div>'+'<div class="ls">'+s.sub+'</div>'+'<div class="ldiff">'+stars+'</div>'+'<div class="ldesc">'+s.desc+'</div>'+(hasResume?'<div class="lwv" style="color:#ffcc00;">▶ WAVE '+sv2.lastWave+'부터 이어하기</div>':'')+'<div class="lwv">WAVES: '+s.waves+'</div>';
     if(unlocked) card.addEventListener('click',()=>startStage(s.id));
     cardsEl.appendChild(card);
   });
   let resetBtn=document.getElementById('reset-save');
   if(!resetBtn){
     resetBtn=document.createElement('button');resetBtn.id='reset-save';resetBtn.innerText='DATA RESET';
-    resetBtn.addEventListener('click',e=>{e.stopPropagation();if(confirm('모든 진행 데이터를 초기화하시겠습니까?')){localStorage.removeItem(SAVE_KEY);clearedStages.clear();totalScore=0;bestScores={};score=0;showStageLobby(false);}});
+    resetBtn.addEventListener('click',e=>{e.stopPropagation();if(confirm('모든 진행 데이터를 초기화하시겠습니까?')){localStorage.removeItem(SAVE_KEY);clearedStages.clear();currentCharacter='assault';showStageLobby(false);}});
     lobbyEl.appendChild(resetBtn);
   }
   lobbyEl.classList.add('active');
@@ -1206,11 +1230,12 @@ function showStageLobby(afterClear){
 function startStage(sid){
   currentStageId=sid;const sv=loadSave();const resumeWave=(sv.lastStage===sid&&sv.lastWave>1)?sv.lastWave:1;
   stageWaveNum=resumeWave;const st=getCurStage();clearAll();
-  playerHP=100;gameOver=false;wKey='pistol';wD=WD.pistol;ammo=wD.mag;reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;aiming=false;
+  gameOver=false;wKey='pistol';wD=WD.pistol;ammo=wD.mag;reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;aiming=false;
   mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;
-  score=0;scoreEl.innerText='0';hpBar.style.width='100%';rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
+  updateHPBar();rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
   wave=resumeWave;waveKills=0;waveTarget=st.waveBase+(resumeWave-1)*5;waveActive=true;choosingStage=false;showingLobby=false;
-  mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.bonusScore=1;mods.splashRad=0;mods.fireRateMult=1;mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;mods._berserker=false;
+  mods.dmgMult=1;mods.speedMult=1;mods.armorMult=1;mods.splashRad=0;mods.fireRateMult=1;mods.lifeSteal=0;mods.critChance=0;mods.magMult=1;mods.jumpMult=1;mods.regenRate=0;mods.thorns=0;mods._scavenger=false;mods._berserker=false;
+  applyCharacterStats();updateHPBar();
   if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}
   stageEl.classList.remove('active');lobbyEl.classList.remove('active');
   buildMap(sid);
@@ -1231,7 +1256,6 @@ function startStage(sid){
   spawnBuffItem(-80,0.6,80,'shield');spawnBuffItem(80,0.6,-80,'shield');
   spawnBuffItem(-30,0.6,-90,'firerate');spawnBuffItem(30,0.6,90,'firerate');
   spawnBuffItem(-90,0.6,0,'jump');spawnBuffItem(90,0.6,0,'jump');
-  spawnBuffItem(0,0.6,100,'score');spawnBuffItem(0,0.6,-100,'score');
   spawnBuffItem(-110,0.6,-30,'regen');spawnBuffItem(110,0.6,30,'regen');
   spawnBuffItem(-40,0.6,0,'crit');spawnBuffItem(40,0.6,0,'crit');
   if(isMobile){instrEl.innerHTML='<h1>'+st.name+'</h1><p style="color:#00ff88;letter-spacing:2px;font-size:13px;margin-bottom:8px">'+st.sub+'</p><p>터치하여 전투 시작</p><p>왼쪽 조이스틱: 이동 | 오른쪽 드래그: 시점</p><p>FIRE: 사격 | ADS: 조준 | R: 재장전 | ◀▶: 무기</p><div class="hint">웨이브 클리어 시 업그레이드 선택 → '+st.waves+'웨이브 모두 클리어하면 다음 스테이지 해금</div>';}
@@ -1243,7 +1267,7 @@ function startStage(sid){
 
 function showStageSelect(){
   choosingStage=true;if(!isMobile)ctrl.unlock();
-  if(stageClearTxt) stageClearTxt.innerText='WAVE '+stageWaveNum+'/'+getCurStage().waves+' 클리어!  SCORE: '+score;
+  if(stageClearTxt) stageClearTxt.innerText='WAVE '+stageWaveNum+'/'+getCurStage().waves+' 클리어!';
   const pool=[...UPGRADES].sort(()=>Math.random()-0.5).slice(0,3);
   stageCardsEl.innerHTML='';
   pool.forEach(u=>{
@@ -1291,42 +1315,99 @@ const STAGES=[
 let currentStageId=1,stageWaveNum=1;
 const SAVE_KEY='tac_surv_save';
 function loadSave(){
-  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));if(d) return {cleared:d.cleared?new Set(d.cleared):new Set(),totalScore:d.totalScore||0,bestScores:d.bestScores||{},lastStage:d.lastStage||0,lastWave:d.lastWave||0};}catch(e){}
-  return {cleared:new Set(),totalScore:0,bestScores:{},lastStage:0,lastWave:0};
+  try{const d=JSON.parse(localStorage.getItem(SAVE_KEY));if(d) return {cleared:d.cleared?new Set(d.cleared):new Set(),currentCharacter:d.currentCharacter||'assault',lastStage:d.lastStage||0,lastWave:d.lastWave||0};}catch(e){}
+  return {cleared:new Set(),currentCharacter:'assault',lastStage:0,lastWave:0};
 }
-function saveProg(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({cleared:[...clearedStages],totalScore:totalScore,bestScores:bestScores,lastStage:currentStageId,lastWave:stageWaveNum}));}catch(e){}}
-const saveData=loadSave();const clearedStages=saveData.cleared;let totalScore=saveData.totalScore;let bestScores=saveData.bestScores;let showingLobby=false;
+function saveProg(){try{localStorage.setItem(SAVE_KEY,JSON.stringify({cleared:[...clearedStages],currentCharacter:currentCharacter,lastStage:currentStageId,lastWave:stageWaveNum}));}catch(e){}}
+const saveData=loadSave();const clearedStages=saveData.cleared;let currentCharacter=saveData.currentCharacter||'assault';let showingLobby=false;
 function getCurStage(){return STAGES.find(s=>s.id===currentStageId)||STAGES[0];}
 let wave=1,waveKills=0,waveTarget=10,waveActive=true,choosingStage=false,spawnInterval=null;
 
-const mods={dmgMult:1.0,speedMult:1.0,armorMult:1.0,bonusScore:1.0,splashRad:0.0,fireRateMult:1.0,lifeSteal:0.0,critChance:0.0,magMult:1.0,jumpMult:1.0,regenRate:0.0,thorns:0.0};
+const mods={dmgMult:1.0,speedMult:1.0,armorMult:1.0,splashRad:0.0,fireRateMult:1.0,lifeSteal:0.0,critChance:0.0,magMult:1.0,jumpMult:1.0,regenRate:0.0,thorns:0.0};
 
 const UPGRADES=[
-  {id:'medkit',   icon:'🩹', name:'긴급 의무키트', desc:'즉시 HP +40 회복', tag:'HEAL',   tc:'tag-heal', apply:()=>{ playerHP=Math.min(playerHP+40,100); hpBar.style.width=playerHP+'%'; }},
-  {id:'shield',   icon:'💊', name:'실드 부스터',   desc:'최대 HP +20', tag:'HEAL', tc:'tag-heal', apply:()=>{ playerHP=Math.min(playerHP+20,120); hpBar.style.width=(playerHP/120*100)+'%'; }},
+  {id:'medkit',   icon:'🩹', name:'긴급 의무키트', desc:'즉시 HP +40 회복', tag:'HEAL',   tc:'tag-heal', apply:()=>{ playerHP=Math.min(playerHP+40,playerMaxHP); updateHPBar(); }},
+  {id:'shield',   icon:'💊', name:'실드 부스터',   desc:'최대 HP +20', tag:'HEAL', tc:'tag-heal', apply:()=>{ playerMaxHP+=20; playerHP=Math.min(playerHP+20,playerMaxHP); updateHPBar(); }},
   {id:'incendiary',icon:'🔥',name:'소이탄',         desc:'총알 피해 x1.8', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.dmgMult*=1.8; }},
-  {id:'headhunter',icon:'🎯',name:'헤드헌터',       desc:'처치당 점수 x2', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.bonusScore*=2.0; }},
   {id:'splash',   icon:'💣', name:'폭발탄',         desc:'총알 착탄 시 범위 폭발 (반경 6)', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.splashRad=Math.max(mods.splashRad,6.0); }},
   {id:'kevlar',   icon:'🛡️', name:'방탄복',         desc:'받는 피해 -60%', tag:'DEF', tc:'tag-def', apply:()=>{ mods.armorMult*=0.4; }},
   {id:'adrenaline',icon:'⚡',name:'아드레날린',     desc:'이동속도 +50%', tag:'UTIL', tc:'tag-util', apply:()=>{ mods.speedMult*=1.5; }},
   {id:'reload',   icon:'🔄', name:'완전 재보급',    desc:'현재 무기 탄약 즉시 완충', tag:'UTIL', tc:'tag-util', apply:()=>{ ammo=wD.mag; ammoEl.innerText=ammo; rldTxt.innerText=''; }},
   {id:'frenzy',   icon:'⚡⚡',name:'광분 모드',     desc:'연사속도 x2', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.fireRateMult*=0.5; }},
-  {id:'horde',    icon:'💀', name:'군집 모드',      desc:'적 2배 출현, 점수 x3', tag:'RISK', tc:'tag-risk', apply:()=>{ mods.bonusScore*=3.0; waveTarget=Math.floor(waveTarget*1.8); }},
+  {id:'horde',    icon:'💀', name:'군집 모드',      desc:'다음 웨이브 적 60% 추가, 피해 x1.3', tag:'RISK', tc:'tag-risk', apply:()=>{ mods.dmgMult*=1.3; waveTarget=Math.floor(waveTarget*1.6); }},
   {id:'vampire',  icon:'🧛', name:'흡혈탄',        desc:'처치 시 HP +8 회복', tag:'HEAL', tc:'tag-heal', apply:()=>{ mods.lifeSteal=8; }},
   {id:'crit',     icon:'💥', name:'크리티컬 히트',  desc:'30% 확률로 2배 피해', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.critChance=0.3; }},
   {id:'bigmag',   icon:'📦', name:'확장 탄창',      desc:'탄창 용량 x2', tag:'UTIL', tc:'tag-util', apply:()=>{ mods.magMult=2; ammo=Math.floor(wD.mag*2); ammoEl.innerText=ammo; maxAmEl.innerText=Math.floor(wD.mag*2); }},
   {id:'highjump', icon:'🦘', name:'강화 다리',      desc:'점프력 +80%', tag:'UTIL', tc:'tag-util', apply:()=>{ mods.jumpMult=1.8; }},
   {id:'regen',    icon:'💚', name:'나노 재생',      desc:'초당 HP +2 자동 회복', tag:'HEAL', tc:'tag-heal', apply:()=>{ mods.regenRate=2; }},
   {id:'thorns',   icon:'🦔', name:'가시 갑옷',      desc:'피격 시 주변 적에게 반사 피해', tag:'DEF', tc:'tag-def', apply:()=>{ mods.thorns=15; }},
-  {id:'fullheal', icon:'❤️', name:'완전 회복',      desc:'HP를 100으로 완전 회복', tag:'HEAL', tc:'tag-heal', apply:()=>{ playerHP=100; hpBar.style.width='100%'; }},
+  {id:'fullheal', icon:'❤️', name:'완전 회복',      desc:'HP를 100으로 완전 회복', tag:'HEAL', tc:'tag-heal', apply:()=>{ playerHP=playerMaxHP; updateHPBar(); }},
   {id:'glass',    icon:'🗡️', name:'유리 대포',      desc:'피해 x3, 받는 피해 x2', tag:'RISK', tc:'tag-risk', apply:()=>{ mods.dmgMult*=3.0; mods.armorMult*=2.0; }},
   {id:'tank',     icon:'🪖', name:'중장갑 모드',    desc:'받는 피해 -80%, 이동속도 -30%', tag:'DEF', tc:'tag-def', apply:()=>{ mods.armorMult*=0.2; mods.speedMult*=0.7; }},
   {id:'berserker',icon:'😤', name:'버서커',         desc:'HP 50 이하일 때 피해 x2.5', tag:'RISK', tc:'tag-risk', apply:()=>{ mods._berserker=true; }},
   {id:'sniperbuff',icon:'🔭',name:'정밀 사격',      desc:'피해 x1.5', tag:'ATK', tc:'tag-atk', apply:()=>{ mods.dmgMult*=1.5; }},
-  {id:'lucky',    icon:'🍀', name:'행운의 탄환',    desc:'처치당 점수 x2.5, 20% 크리티컬', tag:'UTIL', tc:'tag-util', apply:()=>{ mods.bonusScore*=2.5; mods.critChance=Math.min(mods.critChance+0.2,0.8); }},
+  {id:'lucky',    icon:'🍀', name:'행운의 탄환',    desc:'크리티컬 +30%, 연사 +15%', tag:'UTIL', tc:'tag-util', apply:()=>{ mods.critChance=Math.min(mods.critChance+0.3,0.9); mods.fireRateMult*=0.85; }},
   {id:'overcharge',icon:'⚡',name:'과충전',         desc:'연사 x3, 극한 화력', tag:'RISK', tc:'tag-risk', apply:()=>{ mods.fireRateMult*=0.33; }},
   {id:'scavenger',icon:'🔍', name:'탄약 수집가',    desc:'처치 시 탄약 +3 회복', tag:'UTIL', tc:'tag-util', apply:()=>{ mods._scavenger=true; }},
 ];
+
+
+const CHARACTERS=[
+  {id:'assault', name:'돌격병',  sub:'ASSAULT', icon:'🪖', desc:'균형 잡힌 표준 병사',         maxHP:100, unlockStages:0,  stats:{}},
+  {id:'medic',   name:'의무병',  sub:'MEDIC',   icon:'⚕️', desc:'높은 체력·자동 회복',          maxHP:130, unlockStages:0,  stats:{regenRate:1.0}},
+  {id:'scout',   name:'정찰병',  sub:'SCOUT',   icon:'🏃', desc:'빠른 이동·높은 점프',          maxHP:80,  unlockStages:0,  stats:{speedMult:1.35, jumpMult:1.3}},
+  {id:'heavy',   name:'중화기병',sub:'HEAVY',   icon:'🛡️', desc:'방어력 높음·이동 느림',        maxHP:150, unlockStages:3,  stats:{armorMult:0.6, speedMult:0.85}},
+  {id:'sniper',  name:'저격수',  sub:'MARKSMAN',icon:'🎯', desc:'치명적 화력·유리 대포',         maxHP:75,  unlockStages:6,  stats:{dmgMult:1.4, critChance:0.15}},
+  {id:'agent',   name:'특수요원',sub:'AGENT',   icon:'🕴️', desc:'연사·크리티컬 특화',           maxHP:95,  unlockStages:10, stats:{fireRateMult:0.8, critChance:0.25}},
+];
+function getCharacter(){return CHARACTERS.find(c=>c.id===currentCharacter)||CHARACTERS[0];}
+function applyCharacterStats(){
+  const ch=getCharacter();
+  playerMaxHP=ch.maxHP;playerHP=ch.maxHP;
+  if(ch.stats.speedMult)mods.speedMult*=ch.stats.speedMult;
+  if(ch.stats.armorMult)mods.armorMult*=ch.stats.armorMult;
+  if(ch.stats.dmgMult)mods.dmgMult*=ch.stats.dmgMult;
+  if(ch.stats.critChance)mods.critChance=Math.max(mods.critChance,ch.stats.critChance);
+  if(ch.stats.fireRateMult)mods.fireRateMult*=ch.stats.fireRateMult;
+  if(ch.stats.jumpMult)mods.jumpMult=Math.max(mods.jumpMult,ch.stats.jumpMult);
+  if(ch.stats.regenRate)mods.regenRate+=ch.stats.regenRate;
+}
+function buildCharUI(){
+  const grid=document.getElementById('char-grid');grid.innerHTML='';
+  const cs=clearedStages.size;
+  CHARACTERS.forEach(ch=>{
+    const unlocked=cs>=ch.unlockStages;
+    const card=document.createElement('div');
+    card.className='char-card'+(currentCharacter===ch.id?' selected':'')+(!unlocked?' locked':'');
+    let sts=[];
+    sts.push('HP '+ch.maxHP);
+    if(ch.stats.speedMult)sts.push('속도 x'+ch.stats.speedMult);
+    if(ch.stats.armorMult)sts.push('방어↑');
+    if(ch.stats.dmgMult)sts.push('피해 x'+ch.stats.dmgMult);
+    if(ch.stats.critChance)sts.push('크리 +'+Math.round(ch.stats.critChance*100)+'%');
+    if(ch.stats.fireRateMult)sts.push('연사↑');
+    if(ch.stats.jumpMult)sts.push('점프 x'+ch.stats.jumpMult);
+    if(ch.stats.regenRate)sts.push('회복 +'+ch.stats.regenRate);
+    const statsHTML=sts.map(t=>'<span class="cst">'+t+'</span>').join('');
+    card.innerHTML=(currentCharacter===ch.id?'<div class="cbadge">현재</div>':'')+
+      '<span class="ci">'+ch.icon+'</span>'+
+      '<div class="cn">'+ch.name+' <span style="color:#888;font-size:9px;font-weight:normal">'+ch.sub+'</span></div>'+
+      '<div class="cd">'+ch.desc+'</div>'+
+      '<div class="cstats">'+statsHTML+'</div>'+
+      (unlocked?'':'<div class="cul">🔒 '+ch.unlockStages+'스테이지 클리어 시 해금</div>');
+    if(unlocked)card.addEventListener('click',()=>{currentCharacter=ch.id;saveProg();buildCharUI();updateCharInfoHUD();});
+    grid.appendChild(card);
+  });
+}
+function updateCharInfoHUD(){
+  const ch=getCharacter();
+  const ic=document.getElementById('char-icon'),nm=document.getElementById('char-name');
+  if(ic)ic.innerText=ch.icon;
+  if(nm)nm.innerText=ch.name;
+}
+document.getElementById('char-btn').addEventListener('click',()=>{buildCharUI();document.getElementById('char-panel').classList.toggle('active');});
+document.getElementById('char-close').addEventListener('click',()=>{document.getElementById('char-panel').classList.remove('active');});
+updateCharInfoHUD();
 
 let mF=false,mB=false,mL=false,mR=false,mouseDown=false;
 const vel=new THREE.Vector3();let yVel=0,onGnd=true;
@@ -1481,8 +1562,8 @@ function clearAll(){
   buffItems.forEach(b=>scene.remove(b));buffItems.length=0;
   enemyBullets.forEach(b=>scene.remove(b));enemyBullets.length=0;
 }
-function resetGame(){clearAll();if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}stageEl.classList.remove('active');gameOver=false;showingLobby=false;choosingStage=false;hpBar.style.width='100%';scoreEl.innerText='0';yawObj.position.set(0,EYH,60);camera.rotation.set(0,0,0);camera.fov=75;camera.updateProjectionMatrix();gunGrp.position.set(0.24,-0.24,-0.50);gunGrp.rotation.set(0,0,0);rebuildGun('pistol');updateUI();updateWBar();mouseDown=false;aiming=false;gunGrp.visible=true;const scopeEl=document.getElementById('scope-overlay');if(scopeEl) scopeEl.style.display='none';xhEl.style.display='block';xhEl.classList.remove('ads');showStageLobby(false);}
-function endGame(){gameOver=true;mobileActive=false;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:20px;margin:12px 0;color:#ff5555;">스테이지 점수: <strong style="color:#fff">'+score+'</strong></p><p style="font-size:14px;color:#ffcc00;margin:6px 0;">누적 총점: '+totalScore+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
+function resetGame(){clearAll();if(spawnInterval){clearInterval(spawnInterval);spawnInterval=null;}stageEl.classList.remove('active');gameOver=false;showingLobby=false;choosingStage=false;updateHPBar();yawObj.position.set(0,EYH,60);camera.rotation.set(0,0,0);camera.fov=75;camera.updateProjectionMatrix();gunGrp.position.set(0.24,-0.24,-0.50);gunGrp.rotation.set(0,0,0);rebuildGun('pistol');updateUI();updateWBar();mouseDown=false;aiming=false;gunGrp.visible=true;const scopeEl=document.getElementById('scope-overlay');if(scopeEl) scopeEl.style.display='none';xhEl.style.display='block';xhEl.classList.remove('ads');showStageLobby(false);}
+function endGame(){gameOver=true;mobileActive=false;ctrl.unlock();instrEl.style.display='block';instrEl.innerHTML='<h1>GAME OVER</h1><p style="font-size:16px;margin:12px 0;color:#ff5555;">WAVE '+stageWaveNum+' 도달 · 사망</p><p style="font-size:12px;color:#aaa;margin:6px 0;">클리어 스테이지: '+clearedStages.size+' / '+STAGES.length+'</p><p style="color:#888;font-size:12px">클릭해서 스테이지 선택으로</p>';}
 
 function updatePlayer(dt){
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
@@ -1516,7 +1597,7 @@ function updatePlayer(dt){
       }
     }
   }
-  if(mods.regenRate>0&&playerHP<100){playerHP=Math.min(playerHP+mods.regenRate*dt,100);hpBar.style.width=playerHP+'%';}
+  if(mods.regenRate>0&&playerHP<playerMaxHP){playerHP=Math.min(playerHP+mods.regenRate*dt,playerMaxHP);updateHPBar();}
 }
 
 function updateGunRecoil(dt){
@@ -1597,7 +1678,7 @@ function updateEnemies(dt){
     if(ud.flashT>0){ud.flashT-=dt;const t2=Math.max(0,ud.flashT/0.15);ud.bm.color.setRGB(1,t2*0.35,t2*0.35);if(ud.am)ud.am.color.setRGB(0.9+t2*0.1,t2*0.3,t2*0.3);}
     if(eType!=='exploder'&&dist<2.3&&Math.abs(yawObj.position.y-EYH)<3.5){
       const dmgPerSec=13*(ud.dmgMult||1.0);
-      playerHP-=dmgPerSec*dt*mods.armorMult;if(playerHP<0)playerHP=0;hpBar.style.width=playerHP+'%';
+      playerHP-=dmgPerSec*dt*mods.armorMult;if(playerHP<0)playerHP=0;updateHPBar();
       hitFl.style.background='rgba(255,0,0,0.2)';setTimeout(()=>hitFl.style.background='rgba(255,0,0,0)',120);playSound('hurt');
       if(mods.thorns>0){ud.hp-=mods.thorns*dt;}
       if(playerHP<=0){endGame();return;}
@@ -1675,7 +1756,7 @@ function animate(){
 }
 window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
 
-hpBar.style.width='100%';
+updateHPBar();
 rebuildGun('pistol');
 updateWBar();
 instrEl.style.display='none';
