@@ -622,7 +622,7 @@ function addBox(x,y,z,w,h,d,col,coll){
   const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:col,roughness:0.88,metalness:0.1}));
   m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);
   mapMeshes.push(m);
-  if(coll!==false)OBST.push({x:x,z:z,hw:w/2,hd:d/2,ht:y+h/2});
+  if(coll!==false)OBST.push({x:x,z:z,hw:w/2,hd:d/2,ht:y+h/2,hb:y-h/2});
 }
 function addPlat(x,y,z,w,h,d,col){addBox(x,y,z,w,h,d,col,false);PLATS.push({x:x,z:z,hw:w/2,hd:d/2,top:y+h/2});}
 function addProp(x,y,z,w,h,d,col,emCol){
@@ -927,7 +927,10 @@ function isBlocked(x,z,p,skipObst){
   p=p||PR;
   for(let o of OBST){
     if(skipObst&&o===skipObst)continue;
-    if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p)return true;
+    if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p){
+      if(o.hb>=2.5)continue; // 공중 발판은 지상 유닛을 막지 않음
+      return true;
+    }
   }
   return false;
 }
@@ -935,11 +938,15 @@ function isBlocked(x,z,p,skipObst){
 function isPlayerBlocked(x,z,p,skipObst){
   p=p||PR;
   const feetY=yawObj.position.y-EYH;
+  const headY=feetY+2.0;
   const climbTol=onGnd?1.3:0.0;
   for(let o of OBST){
     if(skipObst&&o===skipObst)continue;
     if(x>o.x-o.hw-p&&x<o.x+o.hw+p&&z>o.z-o.hd-p&&z<o.z+o.hd+p){
-      if(o.ht>feetY+climbTol) return true;
+      if(o.hb>=headY) continue;          // 머리 위 (공중 발판) → 통과
+      if(o.ht<=feetY+0.05) continue;     // 발 아래 (바닥 판) → 통과
+      if(o.ht>feetY+climbTol) return true; // 수직 범위 겹치고 step-up 불가능 → 막힘
+      // 아니면 step-up 가능 → 허용
     }
   }
   return false;
@@ -1616,6 +1623,7 @@ function updatePlayer(dt){
     let newTop=0,newObst=null; // 기본은 지면(y=0)
     for(let o of OBST){
       if(sx>o.x-o.hw&&sx<o.x+o.hw&&sz>o.z-o.hd&&sz<o.z+o.hd){
+        if(o.hb>feetY+0.1)continue;      // 장애물 밑면이 발보다 높으면 올라탈 수 없음
         if(o.ht>newTop){newTop=o.ht;newObst=o;}
       }
     }
