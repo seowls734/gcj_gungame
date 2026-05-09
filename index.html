@@ -1057,6 +1057,7 @@ function showClassSelect(sid){
 document.getElementById('class-confirm').addEventListener('click',()=>{
   if(!currentClass) currentClass=CLASSES[0];
   document.getElementById('class-select').classList.remove('active');
+  // 플래그 확실히 해제 — 이 두 값이 true면 게임 시작 불가
   showingLobby=false;
   choosingStage=false;
   // 스킬 바 셋업
@@ -2296,7 +2297,7 @@ const vel=new THREE.Vector3();let yVel=0,onGnd=true;
 const GRAV=18,JUMP=8;let lastT=performance.now();
 
 instrEl.addEventListener('click',()=>{
-  if(showingLobby)return;
+  if(showingLobby||choosingStage)return;
   if(gameOver){showStageLobby(false);return;}
   if(isMobile){mobileActive=true;instrEl.style.display='none';}
   else ctrl.lock();
@@ -2412,7 +2413,7 @@ if(isMobile){
   btnNext.addEventListener('touchstart',e=>{e.preventDefault();btnNext.classList.add('active');if(mobileActive&&!gameOver&&!gamePaused)cycleWep(1);});
   btnNext.addEventListener('touchend',e=>{e.preventDefault();btnNext.classList.remove('active');});
   instrEl.removeEventListener('click',instrEl._pcClick);
-  instrEl.addEventListener('click',()=>{if(showingLobby)return;if(gameOver){showStageLobby(false);return;}mobileActive=true;instrEl.style.display='none';});
+  instrEl.addEventListener('click',()=>{if(showingLobby||choosingStage)return;if(gameOver){showStageLobby(false);return;}mobileActive=true;instrEl.style.display='none';});
   document.getElementById('weapon-bar').style.pointerEvents='auto';
   // 모바일 스킬 버튼
   ['c','e','q'].forEach(k=>{
