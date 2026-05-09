@@ -1859,8 +1859,8 @@ function spawnEnemy(){
   // ─── 처치 목표를 이미 달성했으면 스폰 중단 ───
   const remaining=waveTarget-waveKills;
   if(remaining<=0)return;
-  // ─── 동시 최대 적 수 제한 (목표의 40%+2, 최소 1) ───
-  const maxOnScreen=Math.max(1, Math.min(remaining, Math.ceil(waveTarget*0.4)+2));
+  // ─── 동시 최대 적 수: 목표의 60%+4, 남은 목표 수 초과 불가 ───
+  const maxOnScreen=Math.min(remaining, Math.ceil(waveTarget*0.6)+4);
   if(enemies.length>=maxOnScreen)return;
   const e=makeEnemy();let ok=false,t2=0;
   while(!ok&&t2<40){const ang=Math.random()*Math.PI*2,d=50+Math.random()*100;const ex=Math.cos(ang)*d,ez=Math.sin(ang)*d;if(Math.abs(ex)<LIM-5&&Math.abs(ez)<LIM-5&&!isBlocked(ex,ez,1.5)){e.position.set(ex,0,ez);ok=true;}t2++;}
