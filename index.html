@@ -1025,6 +1025,8 @@ function useSkill(k){
 let pendingStageId=null;
 function showClassSelect(sid){
   pendingStageId=sid;
+  // 로비 오버레이 숨기기 (클래스 선택이 보이도록)
+  lobbyEl.classList.remove('active');
   const cardsEl=document.getElementById('class-cards');
   cardsEl.innerHTML='';
   CLASSES.forEach(cls=>{
@@ -1055,6 +1057,8 @@ function showClassSelect(sid){
 document.getElementById('class-confirm').addEventListener('click',()=>{
   if(!currentClass) currentClass=CLASSES[0];
   document.getElementById('class-select').classList.remove('active');
+  showingLobby=false;
+  choosingStage=false;
   // 스킬 바 셋업
   ['c','e','q'].forEach(k=>{
     document.getElementById('sk-'+k+'-icon').innerText=currentClass.skills[k].icon;
