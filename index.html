@@ -670,7 +670,7 @@ function updateMines(dt){
   }
 }
 
-// 4개 클래스 정의
+// 8개 클래스 정의
 const CLASSES=[
   {
     id:'warrior', name:'전사', icon:'⚔️',
@@ -790,9 +790,150 @@ const CLASSES=[
          }},
     }
   },
+  // ── 5. 닌자 ──────────────────────────────────────
+  {
+    id:'ninja', name:'닌자', icon:'🥷',
+    desc:'순간이동과 암살로 적을 제압.',
+    skills:{
+      c:{name:'순간이동', icon:'⚡', cd:7, desc:'조준 방향으로 8m 순간이동',
+         fn:()=>{
+           const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+           const np=yawObj.position.clone().addScaledVector(dir,8);np.y=EYH;
+           if(!isBlocked(np.x,np.z,PR)){yawObj.position.copy(np);}
+           spawnSkillFX(0xaa00ff,12);showSkillNotify('⚡ 순간이동!');
+         }},
+      e:{name:'연막탄', icon:'💨', cd:14, desc:'5초간 적 감지 차단',
+         fn:()=>{
+           mods._cloaked=true;spawnSkillFX(0x888888,16);showSkillNotify('💨 연막!');
+           setTimeout(()=>{mods._cloaked=false;},5000);
+         }},
+      q:{name:'암살', icon:'🗡️', cd:20, desc:'가장 가까운 적 즉사',
+         fn:()=>{
+           let closest=null,closestDist=20;
+           for(const e of enemies){const d=yawObj.position.distanceTo(e.position);if(d<closestDist){closestDist=d;closest=e;}}
+           if(closest){spawnFX(closest.position.clone());scene.remove(closest);const idx=enemies.indexOf(closest);if(idx>=0){enemies.splice(idx,1);onKill();}}
+           spawnSkillFX(0xaa00ff,20);showSkillNotify('🗡️ 암살!');
+         }},
+    }
+  },
+  // ── 6. 파이로 ────────────────────────────────────
+  {
+    id:'pyro', name:'파이로', icon:'🔥',
+    desc:'화염으로 전장을 불태운다.',
+    skills:{
+      c:{name:'화염방사', icon:'🔥', cd:10, desc:'전방 적에게 4초간 화염 피해',
+         fn:()=>{
+           let elapsed=0;
+           const iv=setInterval(()=>{
+             elapsed+=0.1;
+             const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+             const origin=yawObj.position.clone();
+             for(let j=enemies.length-1;j>=0;j--){
+               const e=enemies[j];
+               const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
+               const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.001)continue;
+               const t2=(dx*dir.x+dz*dir.z)/denom;if(t2<0||t2>12)continue;
+               e.userData.hp-=3*mods.dmgMult;e.userData.flashT=0.1;
+               if(e.userData.hp<=0){spawnFX(e.position.clone());scene.remove(e);enemies.splice(j,1);onKill();}
+             }
+             if(elapsed>=4)clearInterval(iv);
+           },100);
+           spawnSkillFX(0xff4400,18);showSkillNotify('🔥 화염방사!');
+         }},
+      e:{name:'불폭탄', icon:'💥', cd:12, desc:'발밑에 3초간 화염 지대 생성',
+         fn:()=>{
+           const fp=yawObj.position.clone();spawnExplosionFX(fp);
+           let t2=0;const iv=setInterval(()=>{
+             t2+=0.2;
+             for(let j=enemies.length-1;j>=0;j--){
+               if(enemies[j].position.distanceTo(fp)<3.5){
+                 enemies[j].userData.hp-=4*mods.dmgMult;enemies[j].userData.flashT=0.1;
+                 if(enemies[j].userData.hp<=0){spawnFX(enemies[j].position.clone());scene.remove(enemies[j]);enemies.splice(j,1);onKill();}
+               }
+             }
+             if(t2>=3)clearInterval(iv);
+           },200);
+           showSkillNotify('💥 불폭탄!');
+         }},
+      q:{name:'인페르노', icon:'🌋', cd:30, desc:'주변 18m 모든 적에게 대량 화염 피해',
+         fn:()=>{
+           for(let j=enemies.length-1;j>=0;j--){
+             if(yawObj.position.distanceTo(enemies[j].position)<18){
+               enemies[j].userData.hp-=50*mods.dmgMult;enemies[j].userData.flashT=0.3;
+               if(enemies[j].userData.hp<=0){spawnFX(enemies[j].position.clone());scene.remove(enemies[j]);enemies.splice(j,1);onKill();}
+             }
+           }
+           spawnExplosionFX(yawObj.position.clone());spawnSkillFX(0xff2200,30);showSkillNotify('🌋 인페르노!');
+         }},
+    }
+  },
+  // ── 7. 사이보그 ──────────────────────────────────
+  {
+    id:'cyborg', name:'사이보그', icon:'🤖',
+    desc:'기계 강화로 전투력을 극대화.',
+    skills:{
+      c:{name:'오버클럭', icon:'⚙️', cd:12, desc:'6초간 연사속도 3배, 이동속도 2배',
+         fn:()=>{
+           mods.fireRateMult*=0.33;mods.speedMult*=2;
+           spawnSkillFX(0x00ffff,15);showSkillNotify('⚙️ 오버클럭!');
+           setTimeout(()=>{mods.fireRateMult/=0.33;mods.speedMult/=2;},6000);
+         }},
+      e:{name:'실드 충전', icon:'🔋', cd:18, desc:'5초간 피해 무효 실드',
+         fn:()=>{
+           const old=mods.armorMult;mods.armorMult=0;
+           spawnSkillFX(0x00ffff,12);showSkillNotify('🔋 실드 충전!');
+           setTimeout(()=>{mods.armorMult=old;},5000);
+         }},
+      q:{name:'핵 펄스', icon:'☢️', cd:28, desc:'14m 이내 모든 적 즉사',
+         fn:()=>{
+           for(let j=enemies.length-1;j>=0;j--){
+             if(yawObj.position.distanceTo(enemies[j].position)<14){
+               spawnFX(enemies[j].position.clone());scene.remove(enemies[j]);enemies.splice(j,1);onKill();
+             }
+           }
+           spawnSkillFX(0x00ffff,25);showSkillNotify('☢️ 핵 펄스!');
+         }},
+    }
+  },
+  // ── 8. 사냥꾼 ────────────────────────────────────
+  {
+    id:'hunter', name:'사냥꾼', icon:'🏹',
+    desc:'표식과 화살로 적을 추적.',
+    skills:{
+      c:{name:'표식', icon:'🎯', cd:5, desc:'가장 가까운 적 — 30초간 받는 피해 2배',
+         fn:()=>{
+           let closest=null,closestDist=60;
+           for(const e of enemies){const d=yawObj.position.distanceTo(e.position);if(d<closestDist){closestDist=d;closest=e;}}
+           if(closest){
+             closest.userData._marked=true;
+             // 표식된 적에게 피해 2배 적용을 위해 maxHP 임시 조정 대신 hp를 절반으로
+             closest.userData.hp=closest.userData.hp*0.5;
+             closest.userData.flashT=0.4;
+             spawnSkillFX(0xff4444,8,closest.position);
+           }
+           showSkillNotify('🎯 표식!');
+         }},
+      e:{name:'덫', icon:'🪤', cd:10, desc:'원하는 위치에 덫 설치 — 적 이동 정지+피해',
+         fn:()=>{ startPlacing('mine','e'); }},
+      q:{name:'독화살', icon:'☠️', cd:18, desc:'조준 방향 관통 — 적 HP 30% 제거',
+         fn:()=>{
+           const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+           const origin=camera.position.clone();
+           for(let j=enemies.length-1;j>=0;j--){
+             const e=enemies[j];
+             const dx=e.position.x-origin.x,dz=e.position.z-origin.z;
+             const denom=dir.x*dir.x+dir.z*dir.z;if(denom<0.001)continue;
+             const t2=(dx*dir.x+dz*dir.z)/denom;if(t2<0||t2>100)continue;
+             const cx=origin.x+dir.x*t2,cz=origin.z+dir.z*t2;
+             if(Math.sqrt((cx-e.position.x)**2+(cz-e.position.z)**2)>1.5)continue;
+             e.userData.hp-=e.userData.maxHP*0.3*mods.dmgMult;e.userData.flashT=0.2;
+             if(e.userData.hp<=0){spawnFX(e.position.clone());scene.remove(e);enemies.splice(j,1);onKill();}
+           }
+           spawnSkillFX(0x44ff44,14);showSkillNotify('☠️ 독화살!');
+         }},
+    }
+  },
 ];
-
-let currentClass=null; // 선택된 클래스
 // 스킬 쿨다운 상태
 const skillCD={c:0,e:0,q:0};
 const skillMaxCD={c:0,e:0,q:0};
