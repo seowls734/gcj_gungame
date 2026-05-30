@@ -227,6 +227,22 @@ const HEROES=[
   {id:'titan',  nm:'거신 병사', ico:'🗿', dps:1.6e6, cost:5e9},
   {id:'angel',  nm:'대천사',    ico:'😇', dps:9.5e6, cost:7e10},
 ];
+// ── 동료 특수 능력 ──
+//  보유 1마리부터 능력이 발동되고, every 마리마다 한 단계 강화됩니다.
+const HERO_PERKS={
+  novice:  {nm:'검술 수련', type:'click',    per:0.40, every:25, fmt:v=>'클릭 피해 +'+Math.round(v*100)+'%'},
+  archer:  {nm:'집중 사격', type:'dps',      per:0.15, every:25, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  mage:    {nm:'비전 치명', type:'crit',     per:0.04, every:20, fmt:v=>'클릭 치명타 확률 +'+Math.round(v*100)+'%'},
+  rogue:   {nm:'보물 사냥', type:'gold',     per:0.20, every:25, fmt:v=>'골드 획득 +'+Math.round(v*100)+'%'},
+  knight:  {nm:'수호 결계', type:'bossTime', per:2,    every:20, fmt:v=>'보스 제한시간 +'+v+'초'},
+  cleric:  {nm:'신성 축복', type:'allDmg',   per:0.10, every:25, fmt:v=>'모든 피해 +'+Math.round(v*100)+'%'},
+  archmage:{nm:'심연 폭발', type:'critDmg',  per:1,    every:25, fmt:v=>'치명타 피해 +'+Math.round(v*100)+'%'},
+  dragoon: {nm:'용 사냥꾼', type:'bossDmg',  per:0.50, every:20, fmt:v=>'보스에게 주는 피해 +'+Math.round(v*100)+'%'},
+  titan:   {nm:'강철 군단', type:'dps',      per:0.25, every:50, fmt:v=>'모든 DPS +'+Math.round(v*100)+'%'},
+  angel:   {nm:'천상 가호', type:'gemFind',  per:0.05, every:10, fmt:v=>'보스 처치 시 정수 확률 +'+Math.round(v*100)+'%'},
+};
+// 보유 수 → 강화 단계(1마리부터 1단계)
+function perkSteps(have,every){ return have>0?1+Math.floor((have-1)/every):0; }
 // ── 강화(골드) ──
 const UPGRADES=[
   {id:'click', nm:'검 강화',   ico:'👆', sub:'클릭 피해 +60%',      baseCost:25,  mult:1.6},
@@ -274,7 +290,7 @@ function fmtTime(s){
 
 // ── 파생 수치 ──
 function clickPower(){
-  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*dmgBuff();
+  return Math.ceil(1*Math.pow(1.6,S.upg.click))*gemAllMult()*dmgBuff()*heroFx().click;
 }
 function totalDps(){
   let d=0;
@@ -282,10 +298,35 @@ function totalDps(){
   d*=Math.pow(1.25,S.upg.dmg);   // 동료 훈련
   d*=gemAllMult();
   d*=dmgBuff();                  // 스페셜 이벤트 버프
+  d*=heroFx().dps;               // 동료 특수 능력
   return d;
 }
 function goldMult(){ return Math.pow(1.20,S.upg.gold)*Math.pow(1.25,S.gem.gGold||0); }
 function gemAllMult(){ return 1+0.15*(S.gem.gALL||0); }
+
+// 동료 특수 능력 합산 → 각종 보정치
+function heroFx(){
+  const fx={click:1,dps:1,gold:1,crit:0,critDmg:0,bossDmg:1,bossTime:0,gem:0};
+  for(const h of HEROES){
+    const c=S.heroes[h.id]||0; if(c<=0)continue;
+    const p=HERO_PERKS[h.id]; if(!p)continue;
+    const v=p.per*perkSteps(c,p.every);
+    switch(p.type){
+      case 'click':   fx.click*=1+v; break;
+      case 'dps':     fx.dps*=1+v;   break;
+      case 'gold':    fx.gold*=1+v;  break;
+      case 'allDmg':  fx.click*=1+v; fx.dps*=1+v; break;
+      case 'crit':    fx.crit+=v;    break;
+      case 'critDmg': fx.critDmg+=v; break;
+      case 'bossDmg': fx.bossDmg*=1+v; break;
+      case 'bossTime':fx.bossTime+=v;  break;
+      case 'gemFind': fx.gem+=v;     break;
+    }
+  }
+  fx.crit=Math.min(fx.crit,0.6);   // 치명타 확률 상한
+  fx.gem=Math.min(fx.gem,0.75);    // 정수 획득 확률 상한
+  return fx;
+}
 
 function mobMaxHp(stage,boss){
   let hp=10*Math.pow(1.55,stage-1);
@@ -295,7 +336,7 @@ function mobMaxHp(stage,boss){
 function goldReward(stage,boss){
   let g=6*Math.pow(1.17,stage-1);
   if(boss)g*=12;
-  return Math.ceil(g*goldMult()*goldBuff());
+  return Math.ceil(g*goldMult()*goldBuff()*heroFx().gold);
 }
 function isBossStage(st){return st%10===0;}
 function bossDefeated(st){return !!(S.bossKills&&S.bossKills[st]);} // 이미 처치한 보스
@@ -325,7 +366,7 @@ function spawnMob(force){
   mob.boss=boss;
   mob.phase=boss?'boss':(bossStage?'fled':'normal');
   mob.max=mobMaxHp(st,boss); mob.hp=mob.max;
-  mob.timer=boss?30:0;
+  mob.timer=boss?(30+heroFx().bossTime):0;   // 기사: 보스 제한시간 연장
   const idx=(st-1);
   if(boss){
     $('mob').textContent=BOSSES[(st/10-1)%BOSSES.length];
@@ -355,6 +396,7 @@ function renderHp(){
 // ── 데미지 적용 / 처치 ──
 function dealDamage(amt,fromClick,crit){
   if(mob.hp<=0)return;
+  if(mob.boss)amt*=heroFx().bossDmg;          // 용기사: 보스 추가 피해
   mob.hp-=amt;
   if(fromClick)floatNum(amt,!!crit,crit?'#ff5a78':'#ffd86b');
   if(mob.hp<=0)onKill();
@@ -372,7 +414,11 @@ function onKill(){
     return;
   }
   const boss=mob.boss;
-  if(boss){ if(!S.bossKills)S.bossKills={}; S.bossKills[S.stage]=true; } // 처치한 보스는 재등장 불가
+  if(boss){
+    if(!S.bossKills)S.bossKills={}; S.bossKills[S.stage]=true; // 처치한 보스는 재등장 불가
+    const gf=heroFx().gem;                                    // 대천사: 보스 처치 시 정수 획득
+    if(gf>0&&Math.random()<gf){ S.gems+=1; floatNum('💎 +1',true,'#7ee0ff'); }
+  }
   S.gold+=goldReward(S.stage,boss);
   S.totalKills++; S.killsThisStage++;
   const need=killsNeeded(S.stage);
@@ -405,10 +451,11 @@ function floatNum(v,crit,color){
 }
 
 // ── 클릭 / 스페이스바 공격 ──
-const CRIT_CHANCE=0.15, CRIT_MULT=5;   // 15% 확률로 5배 치명타
+const CRIT_CHANCE=0.15, CRIT_MULT=5;   // 기본 15% 확률로 5배 치명타
 function clickAttack(){
+  const fx=heroFx();                   // 마법사: 치명타 확률 / 대마법사: 치명타 피해
   let dmg=clickPower(), crit=false;
-  if(Math.random()<CRIT_CHANCE){ dmg*=CRIT_MULT; crit=true; }
+  if(Math.random()<CRIT_CHANCE+fx.crit){ dmg*=CRIT_MULT+fx.critDmg; crit=true; }
   dealDamage(dmg,true,crit);
   const m=$('mob');m.classList.add('hit');setTimeout(()=>m.classList.remove('hit'),60);
 }
@@ -601,11 +648,24 @@ function renderShop(){
       const {n,sum}=resolveQty(h.cost,1.15,have,S.gold);
       const ok=!locked&&S.gold>=sum;
       const addDps=h.dps*n*Math.pow(1.25,S.upg.dmg)*gemAllMult();
+      const p=HERO_PERKS[h.id];
+      const steps=perkSteps(have,p.every), nextAt=steps*p.every+1;
+      const perkLvl = locked
+        ? '🔒 이전 동료 필요'
+        : (have<=0
+            ? `보유 0 · 구매 시 +${fmt(addDps)} DPS<br>✨ <b>${p.nm}</b>: 첫 구매 시 발동 → ${p.fmt(p.per)}`
+            : `보유 ${have} · 구매 시 +${fmt(addDps)} DPS<br>✨ <b>${p.nm}</b> Lv.${steps} · ${p.fmt(p.per*steps)} · 다음 ${nextAt}마리`);
       list.appendChild(card({
-        ico:h.ico, nm:h.nm, sub:`개당 ${fmt(h.dps)} DPS`,
-        lvl:locked?'🔒 이전 동료 필요':`보유 ${have}  ·  구매 시 +${fmt(addDps)} DPS`,
+        ico:h.ico, nm:h.nm, sub:`개당 ${fmt(h.dps)} DPS · ✨${p.nm}`,
+        lvl:perkLvl,
         cost:locked?'🔒':'💰 '+fmt(sum), costCls:ok?'ok':'no', locked,
-        onclick:()=>{ if(locked||S.gold<sum)return; S.gold-=sum; S.heroes[h.id]=have+n; updateTop();renderShop();flashSave(); }
+        onclick:()=>{ if(locked||S.gold<sum)return;
+          const before=have; S.gold-=sum; S.heroes[h.id]=before+n;
+          const s0=perkSteps(before,p.every), s1=perkSteps(before+n,p.every);
+          if(s1>s0) showBanner('✨ '+h.nm+' · '+p.nm,
+            (s0===0?'특수 능력 발동! ':'Lv.'+s1+' 강화! ')+p.fmt(p.per*s1),'#7ee0ff');
+          updateTop();renderShop();flashSave();
+        }
       }));
     });
   }else if(activeTab==='up'){
