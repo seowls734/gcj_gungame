@@ -63,6 +63,7 @@
   #hpTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;text-shadow:0 1px 3px #000}
   #killCount{font-size:11px;color:var(--dim);margin-top:8px;height:14px}
+  #atkHint{font-size:11px;color:var(--gold);margin-top:10px;opacity:.85}
 
   /* 떠오르는 데미지 숫자 */
   .float{position:absolute;font-weight:800;pointer-events:none;animation:floatUp .9s ease-out forwards;
@@ -149,6 +150,7 @@
         <div id="mobName">슬라임</div>
         <div id="hpWrap"><div id="hpBar"></div><div id="hpTxt"></div></div>
         <div id="killCount"></div>
+        <div id="atkHint">⌨️ <b>스페이스바</b>를 눌러 공격! (모바일은 화면 터치)</div>
       </div>
     </div>
 
@@ -336,11 +338,19 @@ function floatNum(v,crit,color){
   setTimeout(()=>el.remove(),900);
 }
 
-// ── 클릭 공격 ──
-$('stage').addEventListener('pointerdown',()=>{
+// ── 공격: 스페이스바 (모바일은 화면 터치) ──
+function doAttack(){
+  if(mob.hp<=0)return;
   dealDamage(clickPower(),true);
   const m=$('mob');m.classList.add('hit');setTimeout(()=>m.classList.remove('hit'),60);
+}
+let spaceHeld=false;
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'){ e.preventDefault(); if(!e.repeat)doAttack(); spaceHeld=true; }
 });
+document.addEventListener('keyup',e=>{ if(e.code==='Space')spaceHeld=false; });
+window.addEventListener('blur',()=>{spaceHeld=false;});
+$('stage').addEventListener('pointerdown',doAttack); // 모바일/터치 지원
 
 // ── 메인 루프 ──
 let lastTick=Date.now();
@@ -351,6 +361,7 @@ function tick(){
     mob.timer-=dt;
     if(mob.timer<=0){ floatNum('보스 도주!',false,'#ff5a78'); S.killsThisStage=0; spawnMob(); }
   }
+  if(spaceHeld)doAttack();          // 스페이스바를 누르고 있으면 초당 10회 공격
   const d=totalDps();
   if(d>0&&mob.hp>0)dealDamage(d*dt,false);
   renderHp();
