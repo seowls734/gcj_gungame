@@ -352,7 +352,7 @@ body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
 <div id="instructions">
   <h1>TACTICAL SURVIVAL</h1>
   <p>클릭하여 전투 시작</p>
-  <p class="pc-only">W A S D 이동 | SPACE 점프 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p>
+  <p class="pc-only">W A S D 이동 | SPACE 점프 | CTRL 앉기 | 좌클릭 사격 | 우클릭 조준 | R 재장전</p>
   <p class="pc-only">1~0 / Q / E 무기 선택 (12종)</p>
   <p class="mob-only" style="display:none">조이스틱 이동 | 드래그 시점 | FIRE 사격 | ADS 조준</p>
   <div class="hint">12종 무기 · 적 체력바 · 총기 반동 · 벽 슬라이딩</div>
@@ -1822,6 +1822,30 @@ const gunGrp=new THREE.Group();
 camera.add(gunGrp);
 gunGrp.position.set(0.24,-0.24,-0.50);
 let gunModel=null, gunKickZ=0, gunKickRX=0;
+// 반동 각도(총알·총 모두에 적용): recoilP=상향 climb, recoilY=좌우 sway, gunShake=시각 흔들림
+let recoilP=0, recoilY=0, gunShake=0;
+// 앉기 상태
+let crouching=false, crouchAmt=0;
+const _recUp=new THREE.Vector3(), _recRight=new THREE.Vector3();
+// 한 발 발사 시 반동 누적 (앉으면 증가량↓)
+function addRecoil(){
+  const ctrlMul=crouching?0.4:1;
+  recoilP=Math.min(recoilP+wD.rcRX*0.55*ctrlMul,0.16);
+  recoilY+=(Math.random()-0.5)*wD.rcRX*0.6*ctrlMul;
+  recoilY=Math.max(-0.1,Math.min(0.1,recoilY));
+  gunKickZ+=wD.rcG;
+  gunShake=Math.min(gunShake+wD.rcRX*0.6+0.02,0.14);
+}
+// 카메라 방향 dir 을 현재 반동 각도만큼 틀어 총알이 총구(반동)를 따라가게 함
+function applyRecoilDir(dir){
+  if(!recoilP&&!recoilY)return;
+  _recUp.set(0,1,0);
+  _recRight.crossVectors(dir,_recUp);
+  if(_recRight.lengthSq()>1e-6)_recRight.normalize();else _recRight.set(1,0,0);
+  dir.applyAxisAngle(_recRight,recoilP); // 위로 들림
+  dir.applyAxisAngle(_recUp,recoilY);    // 좌우 흔들림
+  dir.normalize();
+}
 
 const hpBar=document.getElementById('hp-bar');
 const ammoEl=document.getElementById('ammo');
@@ -4246,7 +4270,7 @@ function doStartStage(sid){
   playerHP=100;gameOver=false;
   wKey='pistol';wD=WD.pistol;ammo=wD.mag;
   reloading=false;rldT=0;cdT=0;bstLeft=0;bstT=0;aiming=false;
-  mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;
+  mF=mB=mL=mR=false;vel.set(0,0,0);yVel=0;onGnd=true;gunKickZ=0;gunKickRX=0;recoilP=0;recoilY=0;gunShake=0;crouching=false;crouchAmt=0;
   hpBar.style.width='100%';rldTxt.innerText='';dmgTxt.innerText='';ehpTxt.innerText='';
   wave=resumeWave;waveKills=0;
   const isFinalWave=resumeWave>=st.waves;
@@ -4451,7 +4475,7 @@ instrEl.addEventListener('click',()=>{
   else ctrl.lock();
 });
 ctrl.addEventListener('lock',()=>instrEl.style.display='none');
-ctrl.addEventListener('unlock',()=>{if(!gameOver&&!showingLobby&&!choosingStage)instrEl.style.display='block';mouseDown=false;aiming=false;});
+ctrl.addEventListener('unlock',()=>{if(!gameOver&&!showingLobby&&!choosingStage)instrEl.style.display='block';mouseDown=false;aiming=false;crouching=false;mF=mB=mL=mR=false;});
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('mousedown',e=>{
   if(!ctrl.isLocked||gameOver)return;
@@ -4470,6 +4494,7 @@ function goToMenu(){
 document.addEventListener('keydown',e=>{
   if(e.code==='Escape'){goToMenu();return;}
   if(e.code==='KeyW')mF=true;if(e.code==='KeyS')mB=true;if(e.code==='KeyA')mL=true;if(e.code==='KeyD')mR=true;
+  if(e.code==='ControlLeft'||e.code==='ControlRight'){crouching=true;e.preventDefault();}
   if(e.code==='KeyR')startReload();
   if(e.code==='KeyC'&&ctrl.isLocked&&!gameOver)useSkill('c');
   if(e.code==='KeyE'&&ctrl.isLocked&&!gameOver){
@@ -4485,7 +4510,7 @@ document.addEventListener('keydown',e=>{
   if(mp[e.code]&&getCurStage().weapons.includes(mp[e.code]))switchWep(mp[e.code]);
 });
 document.getElementById('menu-btn').addEventListener('click',goToMenu);
-document.addEventListener('keyup',e=>{if(e.code==='KeyW')mF=false;if(e.code==='KeyS')mB=false;if(e.code==='KeyA')mL=false;if(e.code==='KeyD')mR=false;});
+document.addEventListener('keyup',e=>{if(e.code==='KeyW')mF=false;if(e.code==='KeyS')mB=false;if(e.code==='KeyA')mL=false;if(e.code==='KeyD')mR=false;if(e.code==='ControlLeft'||e.code==='ControlRight')crouching=false;});
 document.addEventListener('wheel',e=>{
   if(!ctrl.isLocked||gameOver||choosingStage)return;
   e.preventDefault();
@@ -4597,10 +4622,11 @@ function finishReload(){ammo=Math.floor(wD.mag*mods.magMult);reloading=false;rld
 
 function fireSingle(){
   playSound('shoot');
-  const spr=aiming?wD.spr*0.35:wD.spr;
+  const spr=(aiming?wD.spr*0.35:wD.spr)*(crouching?0.5:1);
   for(let i=0;i<wD.pel;i++){
     const b=makeBullet(wD),dir=new THREE.Vector3();
     camera.getWorldDirection(dir);
+    applyRecoilDir(dir); // 현재 반동만큼 총구가 틀어진 방향으로 발사
     dir.x+=(Math.random()-0.5)*spr;dir.y+=(Math.random()-0.5)*spr;dir.z+=(Math.random()-0.5)*spr;dir.normalize();
     b.position.copy(camera.position).addScaledVector(dir,0.9);b.position.y-=0.08;
     b.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),dir);
@@ -4609,9 +4635,9 @@ function fireSingle(){
   }
   ammo--;ammoEl.innerText=ammo;
   if(ammo<=0)startReload();
-  gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
-  // 총구 화염 이펙트
-  const mDir=new THREE.Vector3();camera.getWorldDirection(mDir);
+  addRecoil();
+  // 총구 화염 이펙트 — 반동 방향을 따라감
+  const mDir=new THREE.Vector3();camera.getWorldDirection(mDir);applyRecoilDir(mDir);
   const mPos=camera.position.clone().addScaledVector(mDir,1.1);mPos.y-=0.1;
   spawnMuzzleFX(mPos,mDir,wD.bc);
   fireFl.style.background='rgba(255,255,255,0.08)';
@@ -4620,7 +4646,7 @@ function fireSingle(){
 
 function fireLaser(){
   playSound('shoot');
-  const dir=new THREE.Vector3();camera.getWorldDirection(dir);
+  const dir=new THREE.Vector3();camera.getWorldDirection(dir);applyRecoilDir(dir);
   const origin=camera.position.clone();origin.y-=0.06;
   let maxDist=180;
   for(let t2=1;t2<maxDist;t2+=0.8){
@@ -4667,7 +4693,7 @@ function fireLaser(){
   const glow=new THREE.Mesh(new THREE.CylinderGeometry(0.055,0.055,maxDist,8),new THREE.MeshBasicMaterial({color:0x00ffff,transparent:true,opacity:0.35}));
   glow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir);glow.position.copy(mid);scene.add(glow);laserBeams.push({mesh:glow,initLife:0.12,life:0.12});
   fireFl.style.background='rgba(0,220,255,0.18)';setTimeout(()=>fireFl.style.background='rgba(255,255,255,0)',80);
-  ammo--;ammoEl.innerText=ammo;if(ammo<=0)startReload();gunKickZ+=wD.rcG;gunKickRX+=wD.rcRX;
+  ammo--;ammoEl.innerText=ammo;if(ammo<=0)startReload();addRecoil();
 }
 
 function shoot(){
@@ -4708,8 +4734,9 @@ function endGame(){
 }
 
 function updatePlayer(dt){
+  crouchAmt+=((crouching?1:0)-crouchAmt)*Math.min(1,dt*12);
   vel.x-=vel.x*10*dt;vel.z-=vel.z*10*dt;
-  const spd=120*mods.speedMult;
+  const spd=120*mods.speedMult*(crouching?0.5:1);
   if(mF)vel.z-=spd*dt;if(mB)vel.z+=spd*dt;if(mL)vel.x-=spd*dt;if(mR)vel.x+=spd*dt;
   const px=yawObj.position.x,pz=yawObj.position.z;
   ctrl.moveRight(vel.x*dt);ctrl.moveForward(-vel.z*dt);
@@ -4723,15 +4750,26 @@ function updatePlayer(dt){
   if(isBlocked(yawObj.position.x,yawObj.position.z,PR,py_feet,py_head))yawObj.position.z=pz;
   const flY=0;const minY=flY+EYH;yVel-=GRAV*dt;yawObj.position.y+=yVel*dt;
   if(yawObj.position.y<=minY){yawObj.position.y=minY;yVel=0;onGnd=true;}else onGnd=false;
+  if(onGnd)yawObj.position.y-=crouchAmt*0.7; // 앉기: 지면에서 눈높이를 부드럽게 낮춤
   if(mods.regenRate>0&&playerHP<100){playerHP=Math.min(playerHP+mods.regenRate*dt,100);hpBar.style.width=playerHP+'%';}
 }
 function updateGunRecoil(dt){
-  gunKickZ*=Math.pow(0.04,dt);gunKickRX*=Math.pow(0.04,dt);
-  if(Math.abs(gunKickZ)<0.0005)gunKickZ=0;if(Math.abs(gunKickRX)<0.0005)gunKickRX=0;
+  // 반동 각도 감쇠 — 앉으면 더 빠르게 회복(반동 제어↑)
+  const decay=crouching?0.006:0.045;
+  recoilP*=Math.pow(decay,dt);recoilY*=Math.pow(decay,dt);
+  gunKickZ*=Math.pow(0.04,dt);gunShake*=Math.pow(0.0002,dt);
+  if(Math.abs(recoilP)<0.0002)recoilP=0;if(Math.abs(recoilY)<0.0002)recoilY=0;
+  if(Math.abs(gunKickZ)<0.0005)gunKickZ=0;if(gunShake<0.0005)gunShake=0;
   const ax=aiming?0.0:0.24,ay=aiming?-0.12:-0.24,az=aiming?-0.32:-0.50;
-  gunGrp.position.x+=(ax-gunGrp.position.x)*0.16;gunGrp.position.y+=(ay-gunGrp.position.y)*0.16;
+  const cy=crouchAmt*0.05; // 앉으면 총을 살짝 끌어내림
+  gunGrp.position.x+=(ax-gunGrp.position.x)*0.16;gunGrp.position.y+=((ay-cy)-gunGrp.position.y)*0.16;
   gunGrp.position.z+=(az+gunKickZ-gunGrp.position.z)*0.14;
-  gunGrp.rotation.x+=(gunKickRX-gunGrp.rotation.x)*0.16;gunGrp.rotation.y+=(0-gunGrp.rotation.y)*0.14;gunGrp.rotation.z+=(0-gunGrp.rotation.z)*0.14;
+  // 총 회전이 반동 각도를 그대로 따라감(총알 방향과 일치) + 무작위 흔들림
+  const jx=(Math.random()-0.5)*gunShake, jz=(Math.random()-0.5)*gunShake;
+  const tRX=recoilP*1.6+jx, tRY=recoilY*1.6, tRZ=jz;
+  gunGrp.rotation.x+=(tRX-gunGrp.rotation.x)*0.3;
+  gunGrp.rotation.y+=(tRY-gunGrp.rotation.y)*0.3;
+  gunGrp.rotation.z+=(tRZ-gunGrp.rotation.z)*0.3;
 }
 function updateAim(){
   const tF=aiming?wD.aFov:wD.hFov;camera.fov+=(tF-camera.fov)*0.16;camera.updateProjectionMatrix();
