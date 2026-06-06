@@ -399,10 +399,13 @@ function dealDamage(amt,fromClick,crit){
 }
 function onKill(){
   // 보스 도주 중 부하 처치: 스테이지 전진 없이 골드만, 보스 재등장 시간 단축
+  // 부하는 보스보다 더 짭짤한 골드를 준다(도주한 보스를 추격하는 보상).
   if(mob.phase==='fled'){
-    S.gold+=goldReward(S.stage,false);
+    const loot=Math.ceil(goldReward(S.stage,true)*1.5);
+    S.gold+=loot;
     S.totalKills++;
     bossReturn=Math.max(0,bossReturn-2);
+    floatNum('💰 부하 약탈 +'+fmt(loot),false,'#ffce54');
     floatNum('보스 재등장 -2초',false,'#7ee0ff');
     spawnMob('minion');
     updateTop();
