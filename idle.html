@@ -358,8 +358,10 @@ function isBossStage(st){return st%10===0;}
 function killsNeeded(st){return isBossStage(st)?1:4;} // 일반 스테이지는 4킬마다 전진
 
 // ── 환생(프레스티지) 보상 ──
+// 환생할 때마다 다음 환생에 필요한 최소 스테이지가 25씩 올라간다.
+function prestigeReqStage(){ return 25*((S.prestiges||0)+1); }
 function gemsFromPrestige(){
-  if(S.maxStage<25)return 0;
+  if(S.maxStage<prestigeReqStage())return 0;
   return Math.floor(Math.pow(S.maxStage/10,1.7));
 }
 
@@ -593,6 +595,7 @@ function renderShop(){
     info.style.cssText='font-size:11px;color:var(--dim);text-align:center;padding:8px;line-height:1.7';
     info.innerHTML=`💎 <b>정수 수급처</b><br>`+
       `· 환생 시 <b style="color:var(--gem)">${gemsFromPrestige()}</b>개 (최고 스테이지 ${S.maxStage})<br>`+
+      `&nbsp;&nbsp;→ 다음 환생 조건: 스테이지 <b>${prestigeReqStage()}</b> 도달<br>`+
       `· 👑 보스 첫 처치 드롭 (스테이지에 비례)<br>`+
       `· 🏅 도전과제 보상`;
     list.appendChild(info);
@@ -653,7 +656,7 @@ $('lockBtn').onclick=()=>{ S.autoProgress=!S.autoProgress;
 // ── 환생 ──
 $('prestigeBtn').onclick=()=>{
   const g=gemsFromPrestige();
-  if(g<=0){ openModal('아직 일러요','최고 <b>스테이지 25</b>에 도달하면 환생할 수 있어요.<br>지금 최고 스테이지: '+S.maxStage,[{t:'확인',cls:'',fn:closeModal}]); return; }
+  if(g<=0){ openModal('아직 일러요','최고 <b>스테이지 '+prestigeReqStage()+'</b>에 도달하면 환생할 수 있어요.<br>지금 최고 스테이지: '+S.maxStage,[{t:'확인',cls:'',fn:closeModal}]); return; }
   openModal('💀 환생하시겠습니까?',
     `정수 <span class="big">💎 ${g}</span> 를 얻고,<br>골드·동료·강화가 초기화됩니다.<br>정수 상점의 영구 강화는 유지됩니다.`,
     [{t:'취소',cls:'',fn:closeModal},{t:'환생!',cls:'ready',fn:()=>{doPrestige(g);closeModal();}}]);
